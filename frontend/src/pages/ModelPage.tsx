@@ -14,7 +14,7 @@ import { Markdown } from '../components/Markdown'
 import { materializationLabel } from '../utils/colors'
 import { formatFqn } from '../utils/formatting'
 import { getSubgraph, type LineageDirection } from '../utils/graph'
-import { applyFilters, useFilterState, computeSubgraphOptions } from '../utils/lineageFilters'
+import { applyFilters, useFilterState, computeSubgraphOptions, MODELS_FILTER } from '../utils/lineageFilters'
 import { buildModelColumnsMap } from '../utils/modelColumns'
 import { buildDownstreamMap, getColumnLineageCandidateIds } from '../utils/columnLineageGraph'
 import { getModelErdSubgraph } from '../utils/erdSubgraph'
@@ -229,7 +229,7 @@ export function ModelPage() {
   const [depth, setDepth] = useState(2)
   const [direction, setDirection] = useState<LineageDirection>('both')
   const [lineageFullscreen, setLineageFullscreen] = useState(false)
-  const [typeFilter, toggleType, setTypeMode, clearTypes] = useFilterState()
+  const [typeFilter, toggleType, setTypeMode, clearTypes] = useFilterState(MODELS_FILTER)
   const { selected: globalTagSelected, mode: globalTagMode, toggle: toggleTag, setMode: setTagMode, clear: clearTags } = useTagFilterStore()
   const tagFilter: FilterState = useMemo(() => ({ mode: globalTagMode, selected: new Set(globalTagSelected) }), [globalTagSelected, globalTagMode])
   const [folderFilter, toggleFolder, setFolderMode, clearFolders] = useFilterState()
