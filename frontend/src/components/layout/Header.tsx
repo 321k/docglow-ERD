@@ -3,10 +3,12 @@ import { useSearchStore } from '../../stores/searchStore'
 import { useChatStore } from '../../stores/chatStore'
 
 export function Header() {
-  const { data, theme, toggleTheme } = useProjectStore()
+  const { theme, toggleTheme } = useProjectStore()
   const { setOpen } = useSearchStore()
-  const projectName = data?.metadata.project_name ?? 'docglow'
-  const homeHref = import.meta.env.BASE_URL
+  const homeHref =
+    typeof window !== 'undefined' && window.location.pathname.startsWith('/docglow')
+      ? '/docglow/'
+      : '/'
 
   return (
     <header className="h-14 border-b border-[var(--border)] bg-[var(--bg)] flex items-center px-4 gap-4 shrink-0">
@@ -14,8 +16,7 @@ export function Header() {
         href={homeHref}
         className="flex items-center gap-2 font-semibold text-[var(--text)] hover:text-primary transition-colors"
       >
-        <span className="text-lg">Docglow</span>
-        <span className="text-[var(--text)] font-medium">{projectName}</span>
+        <span className="text-lg">Marcura Data Dictionary</span>
       </a>
 
       <button
