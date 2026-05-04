@@ -164,7 +164,7 @@ function UsageCard({ usage }: { usage: { queries_past_30_days: number; daily_que
             {sparkPath && (
               <path
                 d={sparkPath}
-                stroke="var(--primary)"
+                stroke="var(--color-primary, #2563eb)"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
