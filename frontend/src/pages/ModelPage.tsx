@@ -124,6 +124,12 @@ export function ModelPage() {
 
   const decodedId = id ? decodeURIComponent(id) : ''
   const model = decodedId ? getModel(decodedId) : undefined
+  const compiledSqlAvailable = Boolean(model?.compiled_sql)
+  const rawSqlAvailable = Boolean(model?.raw_sql)
+  const displayedSql =
+    sqlMode === 'compiled'
+      ? (model?.compiled_sql || model?.raw_sql || '')
+      : (model?.raw_sql || model?.compiled_sql || '')
 
   // Scroll to column anchor when navigating with a hash (e.g. #col-closer_id)
   useEffect(() => {
@@ -315,7 +321,7 @@ export function ModelPage() {
                   : 'bg-[var(--bg-surface)] text-[var(--text-muted)]'
               }`}
             >
-              Compiled
+              {compiledSqlAvailable ? 'Compiled' : 'Compiled (fallback)'}
             </button>
             <button
               onClick={() => setSqlMode('raw')}
@@ -325,10 +331,10 @@ export function ModelPage() {
                   : 'bg-[var(--bg-surface)] text-[var(--text-muted)]'
               }`}
             >
-              Raw
+              {rawSqlAvailable ? 'Raw' : 'Raw (fallback)'}
             </button>
           </div>
-          <SqlViewer sql={sqlMode === 'compiled' ? model.compiled_sql : model.raw_sql} />
+          <SqlViewer sql={displayedSql} />
         </div>
       )}
 
