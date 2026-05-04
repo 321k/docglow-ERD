@@ -69,6 +69,16 @@ export { gradeFromScore, HEALTH_GRADE_THRESHOLDS, PLAN_LIMITS } from "@docglow/s
 // Types extended with new transformation types (pending @docglow/shared-types v0.2.0)
 export type TransformationType = 'direct' | 'derived' | 'aggregated' | 'passthrough' | 'rename' | 'unknown';
 
+export interface ModelUsagePoint {
+  readonly date: string;
+  readonly query_count: number;
+}
+
+export interface ModelUsageStats {
+  readonly queries_past_30_days: number;
+  readonly daily_queries_past_3_months: ModelUsagePoint[];
+}
+
 export interface ColumnLineageDependency {
   readonly source_model: string;
   readonly source_column: string;
@@ -109,6 +119,10 @@ declare module "@docglow/shared-types" {
     readonly url: string;
     readonly label: string;
     readonly maturity: string;
+  }
+
+  interface DocglowModel {
+    readonly usage?: ModelUsageStats | null;
   }
 }
 
