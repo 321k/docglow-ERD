@@ -18,7 +18,7 @@ import { applyFilters, useFilterState, computeSubgraphOptions } from '../utils/l
 import { buildModelColumnsMap } from '../utils/modelColumns'
 import { buildDownstreamMap, getColumnLineageCandidateIds } from '../utils/columnLineageGraph'
 import { getModelErdSubgraph } from '../utils/erdSubgraph'
-import type { DocglowModel } from '../types'
+import type { DocglowModel, ModelUsagePoint } from '../types'
 
 const RESOURCE_TYPE_META: Record<string, { label: string; color: string; bg: string }> = {
   model:    { label: 'M', color: '#2563eb', bg: '#2563eb18' },
@@ -107,6 +107,72 @@ function DependencyList({
             {expanded ? 'Show less' : `+${hiddenCount} more`}
           </button>
         )}
+      </div>
+    </div>
+  )
+}
+
+function formatQueryCount(count: number): string {
+  return `${count} ${count === 1 ? 'query' : 'queries'} in the past 30 days`
+}
+
+function buildSparkPath(points: ModelUsagePoint[], width: number, height: number): string {
+  if (points.length === 0) return ''
+
+  const counts = points.map(point => point.query_count)
+  const maxCount = Math.max(...counts)
+  const topPadding = 4
+  const bottomPadding = 4
+  const drawableHeight = Math.max(height - topPadding - bottomPadding, 1)
+  const allZero = maxCount === 0
+
+  return points
+    .map((point, index) => {
+      const x = points.length === 1 ? width / 2 : (index / (points.length - 1)) * width
+      const y = allZero
+        ? height / 2
+        : topPadding + drawableHeight - (point.query_count / maxCount) * drawableHeight
+      return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`
+    })
+    .join(' ')
+}
+
+function UsageCard({ usage }: { usage: { queries_past_30_days: number; daily_queries_past_3_months: ModelUsagePoint[] } }) {
+  const sparkWidth = 240
+  const sparkHeight = 44
+  const sparkPath = useMemo(
+    () => buildSparkPath(usage.daily_queries_past_3_months, sparkWidth, sparkHeight),
+    [usage.daily_queries_past_3_months],
+  )
+
+  return (
+    <div className="mb-6 text-sm">
+      <h3 className="font-medium text-[var(--text-muted)] mb-2">Usage</h3>
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="text-sm text-[var(--text-muted)]">
+          {formatQueryCount(usage.queries_past_30_days)}
+        </div>
+        <div className="shrink-0">
+          <svg
+            width={sparkWidth}
+            height={sparkHeight}
+            viewBox={`0 0 ${sparkWidth} ${sparkHeight}`}
+            role="img"
+            aria-label="Daily usage over the past 3 months"
+            className="overflow-visible"
+          >
+            {sparkPath && (
+              <path
+                d={sparkPath}
+                stroke="var(--primary)"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            )}
+          </svg>
+        </div>
       </div>
     </div>
   )
@@ -263,6 +329,8 @@ export function ModelPage() {
           </div>
         )}
       </div>
+
+      {model.usage && <UsageCard usage={model.usage} />}
 
       {/* Dependencies */}
       {(model.depends_on.length > 0 || model.referenced_by.length > 0) && (
