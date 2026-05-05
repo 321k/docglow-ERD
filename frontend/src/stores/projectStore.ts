@@ -58,7 +58,13 @@ export const useProjectStore = create<ProjectState>((set, get) => {
       try {
         const response = await fetch(url)
         if (!response.ok) {
-          throw new Error(`Failed to load data: ${response.status}`)
+          let details = ''
+          const contentType = response.headers.get('content-type') ?? ''
+          if (contentType.includes('application/json')) {
+            const body = await response.json().catch(() => null) as { error?: string } | null
+            if (body?.error) details = ` - ${body.error}`
+          }
+          throw new Error(`Failed to load data: ${response.status}${details}`)
         }
         const data: DocglowData = await response.json()
         set({ data, loading: false, error: null })

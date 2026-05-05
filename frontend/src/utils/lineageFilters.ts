@@ -3,7 +3,7 @@ import type { FilterState, FilterMode } from '../components/ui/FilterDropdown'
 import type { LineageNode, LineageEdge } from '../types'
 
 export const EMPTY_FILTER: FilterState = { mode: 'include', selected: new Set() }
-export const MODELS_FILTER: FilterState = { mode: 'include', selected: new Set(['model']) }
+export const DEFAULT_TYPES_FILTER: FilterState = { mode: 'exclude', selected: new Set(['exposure']) }
 
 export const RESOURCE_TYPES = ['model', 'source', 'seed', 'snapshot', 'exposure', 'metric']
 

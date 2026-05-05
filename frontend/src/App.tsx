@@ -28,7 +28,7 @@ function App() {
     if (window.__DOCGLOW_DATA__) {
       loadData(window.__DOCGLOW_DATA__)
     } else {
-      fetchData()
+      fetchData(import.meta.env.DEV ? '/docglow-data.json' : undefined)
     }
   }, [loadData, fetchData])
 
