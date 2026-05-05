@@ -8,7 +8,7 @@ import { getColumnLineageCandidateIds } from '../utils/columnLineageGraph'
 import { PinBar } from '../components/lineage/PinBar'
 import { FilterDropdown } from '../components/ui/FilterDropdown'
 import { getUnionSubgraph } from '../utils/graph'
-import { applyFilters, useFilterState, computeSubgraphOptions, RESOURCE_TYPES, MODELS_FILTER } from '../utils/lineageFilters'
+import { applyFilters, useFilterState, computeSubgraphOptions, RESOURCE_TYPES, DEFAULT_TYPES_FILTER } from '../utils/lineageFilters'
 import type { FilterState } from '../components/ui/FilterDropdown'
 import type { LineageDirection } from '../utils/graph'
 import type { LineageNode, LineageEdge } from '../types'
@@ -78,7 +78,7 @@ export function LineagePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pinnedIds, depth, direction])
 
-  const [typeFilter, toggleType, setTypeMode, clearTypes] = useFilterState(MODELS_FILTER)
+  const [typeFilter, toggleType, setTypeMode, clearTypes] = useFilterState(DEFAULT_TYPES_FILTER)
   const { selected: globalTagSelected, mode: globalTagMode, toggle: toggleTag, setMode: setTagMode, clear: clearTags } = useTagFilterStore()
   const tagFilter: FilterState = useMemo(() => ({ mode: globalTagMode, selected: new Set(globalTagSelected) }), [globalTagSelected, globalTagMode])
   const [folderFilter, toggleFolder, setFolderMode, clearFolders] = useFilterState()
