@@ -138,37 +138,47 @@ function buildSparkPath(points: ModelUsagePoint[], width: number, height: number
 }
 
 function UsageCard({ usage }: { usage: { queries_past_30_days: number; daily_queries_past_3_months: ModelUsagePoint[] } }) {
-  const sparkWidth = 240
-  const sparkHeight = 44
+  const sparkWidth = 520
+  const sparkHeight = 56
   const sparkPath = useMemo(
     () => buildSparkPath(usage.daily_queries_past_3_months, sparkWidth, sparkHeight),
     [usage.daily_queries_past_3_months],
   )
 
   return (
-    <div className="mb-6 text-sm">
-      <h3 className="font-medium text-[var(--text-muted)] mb-2">Usage</h3>
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="text-sm text-[var(--text-muted)]">
-          {formatQueryCount(usage.queries_past_30_days)}
-        </div>
+    <div className="mb-8 text-sm">
+      <h3 className="font-medium text-[var(--text-muted)] mb-2">
+        Usage ({formatQueryCount(usage.queries_past_30_days)})
+      </h3>
+      <div className="mt-4 w-full max-w-[520px]">
         <div className="shrink-0">
           <svg
-            width={sparkWidth}
+            width="100%"
             height={sparkHeight}
             viewBox={`0 0 ${sparkWidth} ${sparkHeight}`}
             role="img"
             aria-label="Daily usage over the past 3 months"
-            className="overflow-visible"
+            preserveAspectRatio="none"
+            className="block w-full overflow-visible"
           >
-            {sparkPath && (
+            {sparkPath ? (
               <path
                 d={sparkPath}
                 stroke="var(--color-primary, #2563eb)"
-                strokeWidth="2"
+                strokeWidth="3"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 fill="none"
+              />
+            ) : (
+              <line
+                x1="0"
+                y1={sparkHeight / 2}
+                x2={sparkWidth}
+                y2={sparkHeight / 2}
+                stroke="var(--color-primary, #2563eb)"
+                strokeWidth="3"
+                strokeLinecap="round"
               />
             )}
           </svg>
