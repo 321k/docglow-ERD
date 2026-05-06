@@ -176,6 +176,33 @@ def sample_data() -> dict:
         },
         "search_index": [],
         "lineage": {"nodes": [], "edges": []},
+        "column_lineage": {
+            "model.jaffle_shop.stg_orders": {
+                "order_id": [
+                    {
+                        "source_model": "source.jaffle_shop.jaffle_shop.raw_orders",
+                        "source_column": "order_id",
+                        "transformation": "direct",
+                    }
+                ],
+                "customer_id": [
+                    {
+                        "source_model": "source.jaffle_shop.jaffle_shop.raw_orders",
+                        "source_column": "customer_id",
+                        "transformation": "direct",
+                    }
+                ],
+            },
+            "model.jaffle_shop.fct_orders": {
+                "order_id": [
+                    {
+                        "source_model": "model.jaffle_shop.stg_orders",
+                        "source_column": "order_id",
+                        "transformation": "passthrough",
+                    }
+                ]
+            },
+        },
     }
 
 
@@ -211,6 +238,8 @@ class TestGetModel:
         assert result["name"] == "stg_orders"
         assert result["description"] == "Staged orders from raw source"
         assert len(result["columns"]) == 3
+        assert result["column_lineage_available"] is True
+        assert "order_id" in result["column_lineage"]
 
     def test_get_by_unique_id(self, sample_data: dict) -> None:
         result = TOOL_MAP["get_model"].handler(
@@ -337,6 +366,16 @@ class TestGetColumnInfo:
         assert result["count"] >= 2  # stg_orders + fct_orders
         model_names = {o.get("model_name") for o in result["occurrences"]}
         assert "stg_orders" in model_names
+        stg_orders = next(
+            occurrence
+            for occurrence in result["occurrences"]
+            if occurrence.get("model_name") == "stg_orders"
+        )
+        assert len(stg_orders["upstream_dependencies"]) == 1
+        assert (
+            stg_orders["downstream_dependencies"][0]["target_model"]
+            == "model.jaffle_shop.fct_orders"
+        )
 
     def test_case_insensitive(self, sample_data: dict) -> None:
         result = TOOL_MAP["get_column_info"].handler(sample_data, {"column_name": "ORDER_ID"})
@@ -354,7 +393,7 @@ class TestGetColumnInfo:
 
 class TestToolRegistry:
     def test_all_tools_registered(self) -> None:
-        assert len(TOOLS) == 9
+        assert len(TOOLS) == 10
 
     def test_tool_map_matches_list(self) -> None:
         assert set(TOOL_MAP.keys()) == {t.name for t in TOOLS}
@@ -363,3 +402,26 @@ class TestToolRegistry:
         for tool in TOOLS:
             assert "type" in tool.input_schema
             assert tool.input_schema["type"] == "object"
+
+
+class TestGetColumnLineage:
+    def test_get_model_column_lineage(self, sample_data: dict) -> None:
+        result = TOOL_MAP["get_column_lineage"].handler(sample_data, {"name": "stg_orders"})
+        assert result["model_name"] == "stg_orders"
+        assert result["available"] is True
+        assert "order_id" in result["column_lineage"]
+
+    def test_get_specific_column_lineage(self, sample_data: dict) -> None:
+        result = TOOL_MAP["get_column_lineage"].handler(
+            sample_data,
+            {"name": "stg_orders", "column_name": "order_id"},
+        )
+        assert result["column_name"] == "order_id"
+        assert (
+            result["upstream_dependencies"][0]["source_model"]
+            == "source.jaffle_shop.jaffle_shop.raw_orders"
+        )
+        assert (
+            result["downstream_dependencies"][0]["target_model"]
+            == "model.jaffle_shop.fct_orders"
+        )
