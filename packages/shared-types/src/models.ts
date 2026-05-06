@@ -173,6 +173,7 @@ export interface DocglowExposure {
   readonly name: string;
   readonly type: string;
   readonly description: string;
+  readonly url: string;
   readonly depends_on: string[];
   readonly owner: Record<string, string>;
   readonly tags: string[];

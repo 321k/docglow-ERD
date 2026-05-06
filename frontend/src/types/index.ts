@@ -117,6 +117,10 @@ declare module "@docglow/shared-types" {
   interface DocglowModel {
     readonly usage?: ModelUsageStats | null;
   }
+
+  interface DocglowExposure {
+    readonly url: string;
+  }
 }
 
 export type LineageBadgeAbbreviation = 'smart' | 'truncate' | 'middle' | 'none';

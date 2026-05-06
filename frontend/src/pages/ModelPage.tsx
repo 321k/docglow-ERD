@@ -202,6 +202,11 @@ export function ModelPage() {
   const model = decodedId ? getModel(decodedId) : undefined
   const compiledSqlAvailable = Boolean(model?.compiled_sql)
   const rawSqlAvailable = Boolean(model?.raw_sql)
+
+  useEffect(() => {
+    if (model || !decodedId.startsWith('exposure.')) return
+    navigate(buildResourcePath(decodedId), { replace: true })
+  }, [decodedId, model, navigate])
   const displayedSql =
     sqlMode === 'compiled'
       ? (model?.compiled_sql || model?.raw_sql || '')

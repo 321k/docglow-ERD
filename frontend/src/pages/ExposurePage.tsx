@@ -77,6 +77,19 @@ export function ExposurePage() {
           </span>
           {owner && <span>Owner: {owner}</span>}
         </div>
+        {exposure.url && (
+          <div className="mt-3 text-sm">
+            <span className="text-[var(--text-muted)]">Dashboard: </span>
+            <a
+              href={exposure.url}
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary hover:underline break-all"
+            >
+              {exposure.url}
+            </a>
+          </div>
+        )}
         {exposure.description && (
           <Markdown content={exposure.description} className="mt-3 text-sm" />
         )}
