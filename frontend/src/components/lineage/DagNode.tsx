@@ -21,6 +21,7 @@ const TEST_STATUS_BORDER: Record<string, string> = {
 const COLUMN_ROW_HEIGHT = 22
 const MAX_VISIBLE_COLUMNS = 20
 const AMBER = '#f59e0b'
+const SELECTION_BLUE = '#2563eb'
 
 export interface DagNodeData {
   name: string
@@ -28,6 +29,8 @@ export interface DagNodeData {
   materialization: string
   test_status: string
   isActive: boolean
+  /** Node is the one currently clicked/selected (drives the side panel) */
+  isSelected?: boolean
   folder?: string
   schema?: string
   columns?: string[]
@@ -49,6 +52,7 @@ function DagNodeComponent({ data, id }: NodeProps) {
     materialization,
     test_status,
     isActive,
+    isSelected,
     folder,
     schema,
     columns,
@@ -85,19 +89,25 @@ function DagNodeComponent({ data, id }: NodeProps) {
   const borderColor = TEST_STATUS_BORDER[test_status] ?? 'transparent'
 
   const showAmberBorder = isActive || inColumnTrace
+  // Selection ring (clicked node) — only when not already pinned/amber-highlighted
+  const showSelectionRing = !!isSelected && !showAmberBorder
   const border = showAmberBorder
     ? `2.5px solid ${AMBER}`
-    : noColumnData
-      ? `2px dashed ${AMBER}88`
-      : borderColor !== 'transparent'
-        ? `2px solid ${borderColor}`
-        : '1px solid var(--border, #e2e8f0)'
+    : showSelectionRing
+      ? `2.5px solid ${SELECTION_BLUE}`
+      : noColumnData
+        ? `2px dashed ${AMBER}88`
+        : borderColor !== 'transparent'
+          ? `2px solid ${borderColor}`
+          : '1px solid var(--border, #e2e8f0)'
 
   const boxShadow = showAmberBorder
     ? `0 0 0 3px ${AMBER}33, 0 0 12px ${AMBER}44`
-    : noColumnData
-      ? `0 0 0 2px ${AMBER}22`
-      : undefined
+    : showSelectionRing
+      ? `0 0 0 3px ${SELECTION_BLUE}33, 0 0 12px ${SELECTION_BLUE}44`
+      : noColumnData
+        ? `0 0 0 2px ${AMBER}22`
+        : undefined
 
   const tooltipText = [schema && `Schema: ${schema}`, folder && `Folder: ${folder}`].filter(Boolean).join('\n')
   const canExpand = hasColumnLineage && columns && columns.length > 0
