@@ -21,6 +21,12 @@ from docglow.cloud_hint import maybe_show_hint
 @click.option("--profile-connection", type=str, default=None, help="Connection string or DB path")
 @click.option("--profile-sample-size", type=int, default=None)
 @click.option("--profile-no-cache", is_flag=True, help="Skip profile caching")
+@click.option(
+    "--model-usage-table",
+    type=str,
+    default=None,
+    help="BigQuery table containing model consumption events",
+)
 @click.option("--select", type=str, default=None, help="Only include matching models")
 @click.option("--exclude", type=str, default=None, help="Exclude matching models")
 @click.option("--static", is_flag=True, help="Bundle everything into single index.html")
@@ -99,6 +105,7 @@ def generate(
     profile_connection: str | None,
     profile_sample_size: int | None,
     profile_no_cache: bool,
+    model_usage_table: str | None,
     select: str | None,
     exclude: str | None,
     static: bool,
@@ -208,6 +215,7 @@ def generate(
                 profiling_connection=profiling_connection,
                 profiling_sample_size=profile_sample_size,
                 profiling_cache=not profile_no_cache,
+                model_usage_table=model_usage_table,
                 ai_enabled=ai,
                 title=title,
                 select=select,

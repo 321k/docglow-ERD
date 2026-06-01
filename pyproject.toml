@@ -48,6 +48,9 @@ profiling = [
 ai = [
     "anthropic>=0.40",
 ]
+usage = [
+    "google-cloud-bigquery>=3.25",
+]
 cloud = [
     "httpx>=0.27",
 ]
@@ -110,6 +113,9 @@ module = [
     "sqlalchemy.*",
     "sqlglot",
     "sqlglot.*",
+    "google",
+    "google.cloud",
+    "google.cloud.bigquery",
     "httpx",
     "duckdb",
     "duckdb_engine",

@@ -21,6 +21,51 @@ class ToolDefinition:
     handler: Callable[[dict[str, Any], dict[str, Any]], Any]
 
 
+def _find_model_by_identifier(data: dict[str, Any], identifier: str) -> dict[str, Any] | None:
+    """Resolve a model by unique_id or by model name."""
+    model = data["models"].get(identifier)
+    if model:
+        return model
+
+    for candidate in data["models"].values():
+        if candidate["name"] == identifier:
+            return candidate
+
+    return None
+
+
+def _build_column_lineage_reverse_index(
+    column_lineage: dict[str, Any],
+) -> dict[tuple[str, str], list[dict[str, str]]]:
+    """Index downstream column consumers by source model/column."""
+    reverse_index: dict[tuple[str, str], list[dict[str, str]]] = {}
+
+    for target_model, columns in column_lineage.items():
+        if not isinstance(columns, dict):
+            continue
+
+        for target_column, dependencies in columns.items():
+            if not isinstance(dependencies, list):
+                continue
+
+            for dependency in dependencies:
+                source_model = dependency.get("source_model")
+                source_column = dependency.get("source_column")
+                if not isinstance(source_model, str) or not isinstance(source_column, str):
+                    continue
+
+                key = (source_model, source_column.lower())
+                reverse_index.setdefault(key, []).append(
+                    {
+                        "target_model": target_model,
+                        "target_column": target_column,
+                        "transformation": dependency.get("transformation", "unknown"),
+                    }
+                )
+
+    return reverse_index
+
+
 def _list_models(data: dict[str, Any], params: dict[str, Any]) -> Any:
     """List all models with optional filtering."""
     models = data["models"]
@@ -61,16 +106,12 @@ def _get_model(data: dict[str, Any], params: dict[str, Any]) -> Any:
     """Get full detail for a single model."""
     identifier = params.get("name") or params.get("unique_id", "")
 
-    # Search by unique_id first, then by name
-    model = data["models"].get(identifier)
-    if not model:
-        for uid, m in data["models"].items():
-            if m["name"] == identifier:
-                model = m
-                break
+    model = _find_model_by_identifier(data, identifier)
 
     if not model:
         return {"error": f"Model not found: {identifier}"}
+
+    model_column_lineage = data.get("column_lineage", {}).get(model["unique_id"], {})
 
     return {
         "unique_id": model["unique_id"],
@@ -91,6 +132,8 @@ def _get_model(data: dict[str, Any], params: dict[str, Any]) -> Any:
         "test_results": model.get("test_results", []),
         "last_run": model.get("last_run"),
         "catalog_stats": model.get("catalog_stats", {}),
+        "column_lineage": model_column_lineage,
+        "column_lineage_available": bool(model_column_lineage),
     }
 
 
@@ -358,10 +401,14 @@ def _get_column_info(data: dict[str, Any], params: dict[str, Any]) -> Any:
         return {"error": "column_name parameter is required", "occurrences": []}
 
     occurrences: list[dict[str, Any]] = []
+    column_lineage = data.get("column_lineage", {})
+    reverse_index = _build_column_lineage_reverse_index(column_lineage)
 
     for uid, model in data["models"].items():
         for col in model.get("columns", []):
             if col["name"].lower() == column_name:
+                upstream_dependencies = column_lineage.get(uid, {}).get(col["name"], [])
+                downstream_dependencies = reverse_index.get((uid, col["name"].lower()), [])
                 occurrences.append(
                     {
                         "model_unique_id": uid,
@@ -370,6 +417,8 @@ def _get_column_info(data: dict[str, Any], params: dict[str, Any]) -> Any:
                         "data_type": col.get("data_type", ""),
                         "description": col.get("description", ""),
                         "tests": col.get("tests", []),
+                        "upstream_dependencies": upstream_dependencies,
+                        "downstream_dependencies": downstream_dependencies,
                     }
                 )
 
@@ -387,6 +436,52 @@ def _get_column_info(data: dict[str, Any], params: dict[str, Any]) -> Any:
                 )
 
     return {"column_name": column_name, "occurrences": occurrences, "count": len(occurrences)}
+
+
+def _get_column_lineage(data: dict[str, Any], params: dict[str, Any]) -> Any:
+    """Get model-level or column-level lineage details."""
+    identifier = params.get("name") or params.get("unique_id", "")
+    column_name = params.get("column_name")
+
+    if not identifier:
+        return {"error": "name or unique_id parameter is required"}
+
+    model = _find_model_by_identifier(data, identifier)
+    if not model:
+        return {"error": f"Model not found: {identifier}"}
+
+    column_lineage = data.get("column_lineage", {})
+    model_lineage = column_lineage.get(model["unique_id"], {})
+    reverse_index = _build_column_lineage_reverse_index(column_lineage)
+
+    if isinstance(column_name, str) and column_name:
+        return {
+            "model_unique_id": model["unique_id"],
+            "model_name": model["name"],
+            "column_name": column_name,
+            "upstream_dependencies": model_lineage.get(column_name, []),
+            "downstream_dependencies": reverse_index.get(
+                (model["unique_id"], column_name.lower()),
+                [],
+            ),
+            "available": bool(
+                model_lineage.get(column_name)
+                or reverse_index.get((model["unique_id"], column_name.lower()))
+            ),
+        }
+
+    downstream_by_column = {
+        output_column: reverse_index.get((model["unique_id"], output_column.lower()), [])
+        for output_column in model_lineage
+    }
+
+    return {
+        "model_unique_id": model["unique_id"],
+        "model_name": model["name"],
+        "column_lineage": model_lineage,
+        "downstream_dependencies": downstream_by_column,
+        "available": bool(model_lineage),
+    }
 
 
 # --- Tool Registry ---
@@ -590,6 +685,32 @@ TOOLS: list[ToolDefinition] = [
             "additionalProperties": False,
         },
         handler=_get_column_info,
+    ),
+    ToolDefinition(
+        name="get_column_lineage",
+        description=(
+            "Get column-level lineage for a model, or inspect a specific column's "
+            "upstream and downstream dependencies."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Model name (e.g. 'stg_orders')",
+                },
+                "unique_id": {
+                    "type": "string",
+                    "description": "Model unique_id (e.g. 'model.jaffle_shop.stg_orders')",
+                },
+                "column_name": {
+                    "type": "string",
+                    "description": "Optional column name to inspect",
+                },
+            },
+            "additionalProperties": False,
+        },
+        handler=_get_column_lineage,
     ),
 ]
 

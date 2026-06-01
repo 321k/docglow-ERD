@@ -20,6 +20,7 @@ import type { LineageNode, LineageEdge, LayerDefinition, ColumnLineageData } fro
 import { getUnionChain } from '../../utils/graphTraversal'
 import { useColumnHighlightStore } from '../../stores/columnHighlightStore'
 import { buildReverseIndex, getColumnTraceResult } from '../../utils/columnLineageGraph'
+import { buildResourcePath } from '../../utils/resourceRoutes'
 import { DagNode } from './DagNode'
 import { FolderNode } from './FolderNode'
 
@@ -848,8 +849,7 @@ function LineageFlowInner({
 
       // Navigate to detail page
       onNavigateAway?.()
-      const type = node.id.startsWith('source.') ? 'source' : 'model'
-      navigate(`/${type}/${encodeURIComponent(node.id)}`)
+      navigate(buildResourcePath(node.id))
     } else {
       // Start single-click timer
       clickTimerRef.current = setTimeout(() => {

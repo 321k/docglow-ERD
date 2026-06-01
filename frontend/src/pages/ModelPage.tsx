@@ -14,11 +14,12 @@ import { Markdown } from '../components/Markdown'
 import { materializationLabel } from '../utils/colors'
 import { formatFqn } from '../utils/formatting'
 import { getSubgraph, type LineageDirection } from '../utils/graph'
-import { applyFilters, useFilterState, computeSubgraphOptions } from '../utils/lineageFilters'
+import { applyFilters, useFilterState, computeSubgraphOptions, DEFAULT_TYPES_FILTER } from '../utils/lineageFilters'
 import { buildModelColumnsMap } from '../utils/modelColumns'
 import { buildDownstreamMap, getColumnLineageCandidateIds } from '../utils/columnLineageGraph'
 import { getModelErdSubgraph } from '../utils/erdSubgraph'
-import type { DocglowModel } from '../types'
+import { buildResourcePath } from '../utils/resourceRoutes'
+import type { DocglowModel, ModelUsagePoint } from '../types'
 
 const RESOURCE_TYPE_META: Record<string, { label: string; color: string; bg: string }> = {
   model:    { label: 'M', color: '#2563eb', bg: '#2563eb18' },
@@ -29,11 +30,10 @@ const RESOURCE_TYPE_META: Record<string, { label: string; color: string; bg: str
   metric:   { label: 'Mt', color: '#7c3aed', bg: '#7c3aed18' },
 }
 
-function parseDepId(id: string): { resourceType: string; name: string; navType: string } {
+function parseDepId(id: string): { resourceType: string; name: string } {
   const resourceType = id.split('.')[0] ?? 'model'
   const name = id.split('.').pop()!
-  const navType = resourceType === 'source' ? 'source' : 'model'
-  return { resourceType, name, navType }
+  return { resourceType, name }
 }
 
 const DEPENDENCY_COLLAPSE_THRESHOLD = 20
@@ -45,7 +45,7 @@ function DependencyList({
 }: {
   label: string
   ids: string[]
-  onNavigate: (type: string, id: string) => void
+  onNavigate: (id: string) => void
 }) {
   const [expanded, setExpanded] = useState(false)
 
@@ -75,7 +75,7 @@ function DependencyList({
           return (
             <button
               key={dep.id}
-              onClick={() => onNavigate(dep.navType, dep.id)}
+              onClick={() => onNavigate(dep.id)}
               title={`${dep.resourceType}: ${dep.id}`}
               className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs
                          hover:brightness-90 transition-all cursor-pointer"
@@ -112,6 +112,82 @@ function DependencyList({
   )
 }
 
+function formatQueryCount(count: number): string {
+  return `${count} ${count === 1 ? 'query' : 'queries'} in the past 30 days`
+}
+
+function buildSparkPath(points: ModelUsagePoint[], width: number, height: number): string {
+  if (points.length === 0) return ''
+
+  const counts = points.map(point => point.query_count)
+  const maxCount = Math.max(...counts)
+  const topPadding = 4
+  const bottomPadding = 4
+  const drawableHeight = Math.max(height - topPadding - bottomPadding, 1)
+  const allZero = maxCount === 0
+
+  return points
+    .map((point, index) => {
+      const x = points.length === 1 ? width / 2 : (index / (points.length - 1)) * width
+      const y = allZero
+        ? height / 2
+        : topPadding + drawableHeight - (point.query_count / maxCount) * drawableHeight
+      return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`
+    })
+    .join(' ')
+}
+
+function UsageCard({ usage }: { usage: { queries_past_30_days: number; daily_queries_past_3_months: ModelUsagePoint[] } }) {
+  const sparkWidth = 520
+  const sparkHeight = 56
+  const sparkPath = useMemo(
+    () => buildSparkPath(usage.daily_queries_past_3_months, sparkWidth, sparkHeight),
+    [usage.daily_queries_past_3_months],
+  )
+
+  return (
+    <div className="mb-8 text-sm">
+      <h3 className="font-medium text-[var(--text-muted)] mb-2">
+        Usage ({formatQueryCount(usage.queries_past_30_days)})
+      </h3>
+      <div className="mt-4 w-full max-w-[520px]">
+        <div className="shrink-0">
+          <svg
+            width="100%"
+            height={sparkHeight}
+            viewBox={`0 0 ${sparkWidth} ${sparkHeight}`}
+            role="img"
+            aria-label="Daily usage over the past 3 months"
+            preserveAspectRatio="none"
+            className="block w-full overflow-visible"
+          >
+            {sparkPath ? (
+              <path
+                d={sparkPath}
+                stroke="var(--color-primary, #2563eb)"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            ) : (
+              <line
+                x1="0"
+                y1={sparkHeight / 2}
+                x2={sparkWidth}
+                y2={sparkHeight / 2}
+                stroke="var(--color-primary, #2563eb)"
+                strokeWidth="3"
+                strokeLinecap="round"
+              />
+            )}
+          </svg>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 type Tab = 'columns' | 'sql' | 'lineage' | 'erd' | 'tests'
 
 export function ModelPage() {
@@ -124,6 +200,17 @@ export function ModelPage() {
 
   const decodedId = id ? decodeURIComponent(id) : ''
   const model = decodedId ? getModel(decodedId) : undefined
+  const compiledSqlAvailable = Boolean(model?.compiled_sql)
+  const rawSqlAvailable = Boolean(model?.raw_sql)
+
+  useEffect(() => {
+    if (model || !decodedId.startsWith('exposure.')) return
+    navigate(buildResourcePath(decodedId), { replace: true })
+  }, [decodedId, model, navigate])
+  const displayedSql =
+    sqlMode === 'compiled'
+      ? (model?.compiled_sql || model?.raw_sql || '')
+      : (model?.raw_sql || model?.compiled_sql || '')
 
   // Scroll to column anchor when navigating with a hash (e.g. #col-closer_id)
   useEffect(() => {
@@ -151,7 +238,7 @@ export function ModelPage() {
   const [depth, setDepth] = useState(2)
   const [direction, setDirection] = useState<LineageDirection>('both')
   const [lineageFullscreen, setLineageFullscreen] = useState(false)
-  const [typeFilter, toggleType, setTypeMode, clearTypes] = useFilterState()
+  const [typeFilter, toggleType, setTypeMode, clearTypes] = useFilterState(DEFAULT_TYPES_FILTER)
   const { selected: globalTagSelected, mode: globalTagMode, toggle: toggleTag, setMode: setTagMode, clear: clearTags } = useTagFilterStore()
   const tagFilter: FilterState = useMemo(() => ({ mode: globalTagMode, selected: new Set(globalTagSelected) }), [globalTagSelected, globalTagMode])
   const [folderFilter, toggleFolder, setFolderMode, clearFolders] = useFilterState()
@@ -258,6 +345,8 @@ export function ModelPage() {
         )}
       </div>
 
+      {model.usage && <UsageCard usage={model.usage} />}
+
       {/* Dependencies */}
       {(model.depends_on.length > 0 || model.referenced_by.length > 0) && (
         <div className="mb-6 flex gap-8 text-sm">
@@ -265,14 +354,14 @@ export function ModelPage() {
             <DependencyList
               label="Depends on"
               ids={model.depends_on}
-              onNavigate={(type, id) => navigate(`/${type}/${encodeURIComponent(id)}`)}
+              onNavigate={(targetId) => navigate(buildResourcePath(targetId))}
             />
           )}
           {model.referenced_by.length > 0 && (
             <DependencyList
               label="Referenced by"
               ids={model.referenced_by}
-              onNavigate={(type, id) => navigate(`/${type}/${encodeURIComponent(id)}`)}
+              onNavigate={(targetId) => navigate(buildResourcePath(targetId))}
             />
           )}
         </div>
@@ -315,7 +404,7 @@ export function ModelPage() {
                   : 'bg-[var(--bg-surface)] text-[var(--text-muted)]'
               }`}
             >
-              Compiled
+              {compiledSqlAvailable ? 'Compiled' : 'Compiled (fallback)'}
             </button>
             <button
               onClick={() => setSqlMode('raw')}
@@ -325,10 +414,10 @@ export function ModelPage() {
                   : 'bg-[var(--bg-surface)] text-[var(--text-muted)]'
               }`}
             >
-              Raw
+              {rawSqlAvailable ? 'Raw' : 'Raw (fallback)'}
             </button>
           </div>
-          <SqlViewer sql={sqlMode === 'compiled' ? model.compiled_sql : model.raw_sql} />
+          <SqlViewer sql={displayedSql} />
         </div>
       )}
 

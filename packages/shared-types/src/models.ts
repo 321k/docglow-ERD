@@ -88,6 +88,16 @@ export interface CatalogStats {
   readonly has_stats: boolean;
 }
 
+export interface ModelUsagePoint {
+  readonly date: string;
+  readonly query_count: number;
+}
+
+export interface ModelUsageStats {
+  readonly queries_past_30_days: number;
+  readonly daily_queries_past_3_months: ModelUsagePoint[];
+}
+
 // -- Models ------------------------------------------------------------------
 
 export interface DocglowModel {
@@ -128,6 +138,7 @@ export interface DocglowModel {
    * when ERD inference is disabled.
    */
   readonly relationships_summary?: RelationshipSummary[];
+  readonly usage?: ModelUsageStats | null;
 }
 
 // -- Sources -----------------------------------------------------------------
@@ -162,6 +173,7 @@ export interface DocglowExposure {
   readonly name: string;
   readonly type: string;
   readonly description: string;
+  readonly url: string;
   readonly depends_on: string[];
   readonly owner: Record<string, string>;
   readonly tags: string[];

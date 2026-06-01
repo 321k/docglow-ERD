@@ -10,12 +10,13 @@ def build_search_index(
     sources: dict[str, Any],
     seeds: dict[str, Any],
     snapshots: dict[str, Any],
+    exposures: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Build the search index for MiniSearch.
 
     Each entry has a unique ``id`` field required by MiniSearch. Emits two
     kinds of entries:
-    - **resource entries** (model / source / seed / snapshot) — one per resource,
+    - **resource entries** (model / source / seed / snapshot / exposure) — one per resource,
       searchable by name, description, and tags.
     - **column entries** — one per column per resource, enabling users to search
       for a column name and jump directly to the model + column.
@@ -60,5 +61,17 @@ def build_search_index(
                         "description": col.get("description", ""),
                     }
                 )
+
+    for uid, data in (exposures or {}).items():
+        entries.append(
+            {
+                "id": uid,
+                "unique_id": uid,
+                "name": data.get("name", ""),
+                "resource_type": "exposure",
+                "description": data.get("description", ""),
+                "tags": ", ".join(data.get("tags", [])),
+            }
+        )
 
     return entries

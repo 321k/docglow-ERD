@@ -106,6 +106,32 @@ docglow generate --project-dir /path/to/dbt --static
 
 The entire site (data, styles, JavaScript) is embedded in one file. Perfect for sharing via email, Slack, or committing to a repository.
 
+## BigQuery Model Usage
+
+Docglow can enrich model pages with usage stats from a BigQuery consumption table, including:
+
+- queries in the past 30 days
+- a sparkline of daily usage over the past 3 months
+
+**Enable it:**
+
+```bash
+pip install "docglow[usage]"
+
+export BIGQUERY_MODEL_USAGE_USER_EMAILS='first@example.com,second@example.com'
+
+docglow generate \
+  --project-dir /path/to/dbt/project \
+  --output-dir ./site \
+  --model-usage-table project.dataset.model_consumption
+```
+
+`BIGQUERY_MODEL_USAGE_USER_EMAILS` accepts a comma-separated list. Whitespace is ignored.
+
+When `--model-usage-table` is set, Docglow filters usage rows by the configured email list and matches them to models by `model_name`.
+
+For compatibility, Docglow also reads the older `DOCGLOW_MODEL_USAGE_USER_EMAIL` env var if `BIGQUERY_MODEL_USAGE_USER_EMAILS` is not set.
+
 ## Docglow Cloud
 
 **Hosted documentation with AI features — coming soon.**
