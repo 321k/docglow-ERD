@@ -1,8 +1,9 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Markdown } from '../components/Markdown'
 import { LineageFlow } from '../components/lineage/LineageFlow'
 import { useProjectStore } from '../stores/projectStore'
+import { getSubgraph } from '../utils/graph'
 import { buildModelColumnsMap } from '../utils/modelColumns'
 import { buildResourcePath, getResourcePageTypeFromId } from '../utils/resourceRoutes'
 
@@ -28,13 +29,18 @@ export function ExposurePage() {
   const decodedId = id ? decodeURIComponent(id) : ''
   const exposure = decodedId ? getExposure(decodedId) : undefined
 
+  // Exposures are terminal nodes — only their upstream chain is meaningful.
+  const [depth, setDepth] = useState(2)
+
   const lineageSubgraph = useMemo(() => {
     if (!data?.lineage || !decodedId) return null
 
-    const nodeIds = new Set<string>([decodedId, ...exposure?.depends_on ?? []])
-    const nodes = data.lineage.nodes.filter((node) => nodeIds.has(node.id))
-    const edges = data.lineage.edges.filter(
-      (edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target),
+    const { nodes, edges } = getSubgraph(
+      decodedId,
+      data.lineage.nodes,
+      data.lineage.edges,
+      depth,
+      'upstream',
     )
 
     if (nodes.length === 0) return null
@@ -44,7 +50,7 @@ export function ExposurePage() {
       edges,
       layer_config: data.lineage.layer_config,
     }
-  }, [data?.lineage, decodedId, exposure?.depends_on])
+  }, [data?.lineage, decodedId, depth])
 
   const modelColumns = useMemo(() => {
     if (!data) return {}
@@ -139,7 +145,26 @@ export function ExposurePage() {
       </div>
 
       <div>
-        <h2 className="text-lg font-semibold mb-3">Lineage Context</h2>
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <h2 className="text-lg font-semibold">Lineage Context</h2>
+          {lineageSubgraph && (
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-[var(--text-muted)]">Depth</label>
+              <input
+                type="range"
+                min={1}
+                max={6}
+                value={depth}
+                onChange={(e) => setDepth(Number(e.target.value))}
+                className="w-20 accent-[var(--primary)]"
+              />
+              <span className="text-xs font-medium w-4 text-center">{depth}</span>
+              <span className="text-xs text-[var(--text-muted)] ml-2">
+                {lineageSubgraph.nodes.length} nodes · {lineageSubgraph.edges.length} edges
+              </span>
+            </div>
+          )}
+        </div>
         {lineageSubgraph ? (
           <div className="h-[560px]">
             <LineageFlow
