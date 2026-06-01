@@ -236,6 +236,7 @@ def stage_transform_exposures_metrics(ctx: PipelineContext) -> None:
             "name": exposure.name,
             "type": exposure.type,
             "description": exposure.description,
+            "url": exposure.url,
             "depends_on": exposure.depends_on.nodes,
             "owner": dict(exposure.owner),
             "tags": list(exposure.tags),
@@ -272,7 +273,13 @@ def stage_build_search_index(ctx: PipelineContext) -> None:
     """Build the full-text search index."""
     from docglow.generator.search_index import build_search_index
 
-    ctx.search_index = build_search_index(ctx.models, ctx.sources, ctx.seeds, ctx.snapshots)
+    ctx.search_index = build_search_index(
+        ctx.models,
+        ctx.sources,
+        ctx.seeds,
+        ctx.snapshots,
+        ctx.exposures,
+    )
 
 
 def stage_compute_health(ctx: PipelineContext) -> None:

@@ -3,13 +3,15 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useProjectStore } from '../../stores/projectStore'
 import { useTagFilterStore } from '../../stores/tagFilterStore'
 import { collectAllTags, nodeMatchesTags, type SidebarTreeNode } from '../../utils/sidebarFilters'
-import type { DocglowModel, DocglowSource } from '../../types'
+import { buildResourcePath } from '../../utils/resourceRoutes'
+import type { DocglowExposure, DocglowModel, DocglowSource } from '../../types'
 
 type TreeNode = SidebarTreeNode
 
 function buildTree(
   models: Record<string, DocglowModel>,
   sources: Record<string, DocglowSource>,
+  exposures: Record<string, DocglowExposure>,
 ): TreeNode {
   const root: TreeNode = { name: 'root', path: '', children: new Map() }
 
@@ -62,6 +64,19 @@ function buildTree(
   }
   if (sourceRoot.children.size > 0) root.children.set('sources', sourceRoot)
 
+  const exposureRoot: TreeNode = { name: 'exposures', path: 'exposures', children: new Map() }
+  for (const exposure of Object.values(exposures)) {
+    exposureRoot.children.set(exposure.name, {
+      name: exposure.name,
+      path: exposure.unique_id,
+      uniqueId: exposure.unique_id,
+      resourceType: 'exposure',
+      tags: exposure.tags,
+      children: new Map(),
+    })
+  }
+  if (exposureRoot.children.size > 0) root.children.set('exposures', exposureRoot)
+
   return root
 }
 
@@ -109,7 +124,7 @@ function TreeItem({ node, depth = 0, expandedPaths, onToggle, tagSelected, tagMo
   if (isLeaf && node.uniqueId) {
     return (
       <button
-        onClick={() => navigate(`/${node.resourceType}/${encodeURIComponent(node.uniqueId!)}`)}
+        onClick={() => navigate(buildResourcePath(node.uniqueId!))}
         className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-[var(--bg-surface)]
                     transition-colors cursor-pointer truncate
                     ${isActive ? 'bg-primary/10 text-primary font-medium' : 'text-[var(--text)]'}`}
@@ -161,12 +176,12 @@ export function Sidebar() {
 
   const tree = useMemo(() => {
     if (!data) return null
-    return buildTree(data.models, data.sources)
+    return buildTree(data.models, data.sources, data.exposures)
   }, [data])
 
   const allTags = useMemo(() => {
     if (!data) return []
-    return collectAllTags(data.models, data.sources)
+    return collectAllTags(data.models, data.sources, data.exposures)
   }, [data])
 
   // Only "models" expanded by default; sub-folders collapsed
@@ -207,6 +222,8 @@ export function Sidebar() {
       return tagMode === 'include' ? hasMatch : !hasMatch
     }).length
   }, [data, tagSelected, tagMode, modelCount])
+
+  const exposureCount = data ? Object.keys(data.exposures).length : 0
 
   if (!tree) return null
 
@@ -343,8 +360,8 @@ export function Sidebar() {
 
       <div className="p-3 border-t border-[var(--border)] text-xs text-[var(--text-muted)]">
         {tagSelected.size > 0
-          ? <>{filteredModelCount} of {modelCount} models &middot; {sourceCount} sources</>
-          : <>{modelCount} models &middot; {sourceCount} sources</>
+          ? <>{filteredModelCount} of {modelCount} models &middot; {sourceCount} sources &middot; {exposureCount} exposures</>
+          : <>{modelCount} models &middot; {sourceCount} sources &middot; {exposureCount} exposures</>
         }
       </div>
     </aside>

@@ -18,6 +18,7 @@ import { applyFilters, useFilterState, computeSubgraphOptions } from '../utils/l
 import { buildModelColumnsMap } from '../utils/modelColumns'
 import { buildDownstreamMap, getColumnLineageCandidateIds } from '../utils/columnLineageGraph'
 import { getModelErdSubgraph } from '../utils/erdSubgraph'
+import { buildResourcePath } from '../utils/resourceRoutes'
 import type { DocglowModel } from '../types'
 
 const RESOURCE_TYPE_META: Record<string, { label: string; color: string; bg: string }> = {
@@ -29,11 +30,10 @@ const RESOURCE_TYPE_META: Record<string, { label: string; color: string; bg: str
   metric:   { label: 'Mt', color: '#7c3aed', bg: '#7c3aed18' },
 }
 
-function parseDepId(id: string): { resourceType: string; name: string; navType: string } {
+function parseDepId(id: string): { resourceType: string; name: string } {
   const resourceType = id.split('.')[0] ?? 'model'
   const name = id.split('.').pop()!
-  const navType = resourceType === 'source' ? 'source' : 'model'
-  return { resourceType, name, navType }
+  return { resourceType, name }
 }
 
 const DEPENDENCY_COLLAPSE_THRESHOLD = 20
@@ -45,7 +45,7 @@ function DependencyList({
 }: {
   label: string
   ids: string[]
-  onNavigate: (type: string, id: string) => void
+  onNavigate: (id: string) => void
 }) {
   const [expanded, setExpanded] = useState(false)
 
@@ -75,7 +75,7 @@ function DependencyList({
           return (
             <button
               key={dep.id}
-              onClick={() => onNavigate(dep.navType, dep.id)}
+              onClick={() => onNavigate(dep.id)}
               title={`${dep.resourceType}: ${dep.id}`}
               className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs
                          hover:brightness-90 transition-all cursor-pointer"
@@ -124,6 +124,12 @@ export function ModelPage() {
 
   const decodedId = id ? decodeURIComponent(id) : ''
   const model = decodedId ? getModel(decodedId) : undefined
+
+  // Exposures resolve to /exposure/:id; redirect if reached via /model/:id
+  useEffect(() => {
+    if (model || !decodedId.startsWith('exposure.')) return
+    navigate(buildResourcePath(decodedId), { replace: true })
+  }, [decodedId, model, navigate])
 
   // Scroll to column anchor when navigating with a hash (e.g. #col-closer_id)
   useEffect(() => {
@@ -265,14 +271,14 @@ export function ModelPage() {
             <DependencyList
               label="Depends on"
               ids={model.depends_on}
-              onNavigate={(type, id) => navigate(`/${type}/${encodeURIComponent(id)}`)}
+              onNavigate={(targetId) => navigate(buildResourcePath(targetId))}
             />
           )}
           {model.referenced_by.length > 0 && (
             <DependencyList
               label="Referenced by"
               ids={model.referenced_by}
-              onNavigate={(type, id) => navigate(`/${type}/${encodeURIComponent(id)}`)}
+              onNavigate={(targetId) => navigate(buildResourcePath(targetId))}
             />
           )}
         </div>
