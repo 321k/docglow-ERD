@@ -87,10 +87,11 @@ class TestInitialize:
 class TestToolsList:
     def test_returns_all_tools(self) -> None:
         result = _handle_tools_list()
-        assert len(result["tools"]) == 9
+        assert len(result["tools"]) == 10
         names = {t["name"] for t in result["tools"]}
         assert "list_models" in names
         assert "get_model" in names
+        assert "get_column_lineage" in names
         assert "search" in names
 
     def test_tools_have_required_fields(self) -> None:
@@ -192,7 +193,7 @@ class TestFullSession:
 
         # Check tools/list response
         assert responses[1]["id"] == 2
-        assert len(responses[1]["result"]["tools"]) == 9
+        assert len(responses[1]["result"]["tools"]) == 10
 
         # Check tools/call response
         assert responses[2]["id"] == 3

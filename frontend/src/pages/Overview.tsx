@@ -12,10 +12,15 @@ export function Overview() {
   const filteredModels = useMemo(() => {
     if (!data) return []
     const all = Object.values(data.models)
-    if (tagSelected.size === 0) return all
-    return all.filter(m => {
+    const filtered = tagSelected.size === 0 ? all : all.filter(m => {
       const hasMatch = m.tags.some(t => tagSelected.has(t))
       return tagMode === 'include' ? hasMatch : !hasMatch
+    })
+    return [...filtered].sort((a, b) => {
+      const aUsage = a.usage?.queries_past_30_days ?? 0
+      const bUsage = b.usage?.queries_past_30_days ?? 0
+      if (aUsage !== bUsage) return bUsage - aUsage
+      return a.name.localeCompare(b.name)
     })
   }, [data, tagSelected, tagMode])
 
@@ -108,7 +113,7 @@ export function Overview() {
 
       <div className="flex items-baseline gap-2 mb-3">
         <h2 className="text-lg font-semibold">
-          {tagSelected.size > 0 ? 'Filtered Models' : 'Recent Models'}
+          {tagSelected.size > 0 ? 'Most Used Filtered Models Past 30 Days' : 'Most Used Models Past 30 Days'}
         </h2>
         {tagSelected.size > 0 && (
           <span className="text-xs text-[var(--text-muted)]">
@@ -121,6 +126,7 @@ export function Overview() {
           <thead className="bg-[var(--bg-surface)]">
             <tr>
               <th className="text-left px-4 py-2 font-medium">Model</th>
+              <th className="text-left px-4 py-2 font-medium">Usage</th>
               <th className="text-left px-4 py-2 font-medium">Materialization</th>
               <th className="text-left px-4 py-2 font-medium">Columns</th>
               <th className="text-left px-4 py-2 font-medium">Tests</th>
@@ -141,6 +147,9 @@ export function Overview() {
                         {model.description}
                       </p>
                     )}
+                  </td>
+                  <td className="px-4 py-2">
+                    {formatNumber(model.usage?.queries_past_30_days ?? 0)}
                   </td>
                   <td className="px-4 py-2 capitalize">{model.materialization}</td>
                   <td className="px-4 py-2">{model.columns.length}</td>

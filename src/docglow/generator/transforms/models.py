@@ -43,6 +43,7 @@ def transform_model(
             "execution_time": model_result.execution_time,
             "completed_at": completed_at,
         }
+    compiled_sql = node.compiled_code or (model_result.compiled_code if model_result else None) or ""
 
     # Catalog stats
     catalog_stats = {"row_count": None, "bytes": None, "has_stats": False}
@@ -88,7 +89,7 @@ def transform_model(
         "path": node.original_file_path.replace("\\", "/"),
         "folder": _get_folder(node.original_file_path),
         "raw_sql": node.raw_code,
-        "compiled_sql": node.compiled_code or "",
+        "compiled_sql": compiled_sql,
         "columns": columns,
         "depends_on": [d for d in node.depends_on.nodes if not d.startswith("test.")],
         "referenced_by": referenced_by,

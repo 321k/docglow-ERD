@@ -25,6 +25,7 @@ def generate_site(
     profiling_connection: dict[str, Any] | None = None,
     profiling_sample_size: int | None = None,
     profiling_cache: bool = True,
+    model_usage_table: str | None = None,
     ai_enabled: bool = False,
     title: str | None = None,
     select: str | None = None,
@@ -108,6 +109,12 @@ def generate_site(
             cache_dir=resolved_output if profiling_cache else None,
         )
 
+    if model_usage_table:
+        _run_model_usage_enrichment(
+            docglow_data,
+            table_name=model_usage_table,
+        )
+
     if title:
         docglow_data["metadata"]["project_name"] = title
 
@@ -143,3 +150,18 @@ def _run_profiling(
     if profiles:
         docglow_data["models"] = apply_profiles(docglow_data["models"], profiles)
         docglow_data["metadata"]["profiling_enabled"] = True
+
+
+def _run_model_usage_enrichment(
+    docglow_data: dict[str, Any],
+    *,
+    table_name: str,
+) -> None:
+    """Attach warehouse usage stats to models in-place."""
+    from docglow.usage.bigquery import enrich_models_with_bigquery_usage
+
+    logger.info("Running model usage enrichment...")
+    docglow_data["models"] = enrich_models_with_bigquery_usage(
+        docglow_data["models"],
+        table_name=table_name,
+    )

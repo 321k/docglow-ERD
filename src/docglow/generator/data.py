@@ -100,6 +100,18 @@ class DocglowCatalogStats:
 
 
 @dataclass(frozen=True)
+class ModelUsagePoint:
+    date: str
+    query_count: int
+
+
+@dataclass(frozen=True)
+class ModelUsageStats:
+    queries_past_30_days: int
+    daily_queries_past_3_months: list[ModelUsagePoint]
+
+
+@dataclass(frozen=True)
 class DocglowModel:
     unique_id: str
     name: str
@@ -120,6 +132,7 @@ class DocglowModel:
     test_results: list[DocglowTestResult]
     last_run: DocglowLastRun | None
     catalog_stats: DocglowCatalogStats
+    usage: ModelUsageStats | None = None
 
 
 @dataclass(frozen=True)

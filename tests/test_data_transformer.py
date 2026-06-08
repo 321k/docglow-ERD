@@ -164,6 +164,12 @@ class TestBuildDocglowData:
         for field in required_fields:
             assert field in orders, f"Missing field: {field}"
 
+    def test_compiled_sql_falls_back_to_run_results(self, tmp_path: Path) -> None:
+        data = _load_fixtures(tmp_path)
+        orders = data["models"]["model.jaffle_shop.orders"]
+
+        assert orders["compiled_sql"] != ""
+
     def test_model_description(self, tmp_path: Path) -> None:
         data = _load_fixtures(tmp_path)
         orders = data["models"]["model.jaffle_shop.orders"]
