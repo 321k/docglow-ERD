@@ -118,6 +118,7 @@ declare module "@docglow/shared-types" {
     readonly usage?: ModelUsageStats | null;
   }
 
+  // Exposure dashboard URL added after v0.1.0; remove once shared-types is republished.
   interface DocglowExposure {
     readonly url: string;
   }

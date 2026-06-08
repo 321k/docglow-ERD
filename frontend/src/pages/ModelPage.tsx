@@ -212,6 +212,12 @@ export function ModelPage() {
       ? (model?.compiled_sql || model?.raw_sql || '')
       : (model?.raw_sql || model?.compiled_sql || '')
 
+  // Exposures resolve to /exposure/:id; redirect if reached via /model/:id
+  useEffect(() => {
+    if (model || !decodedId.startsWith('exposure.')) return
+    navigate(buildResourcePath(decodedId), { replace: true })
+  }, [decodedId, model, navigate])
+
   // Scroll to column anchor when navigating with a hash (e.g. #col-closer_id)
   useEffect(() => {
     const hash = location.hash
