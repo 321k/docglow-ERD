@@ -13,6 +13,9 @@ logger = logging.getLogger(__name__)
 
 BIGQUERY_MODEL_USAGE_USER_EMAILS_ENV_VAR = "BIGQUERY_MODEL_USAGE_USER_EMAILS"
 LEGACY_MODEL_USAGE_USER_EMAIL_ENV_VAR = "DOCGLOW_MODEL_USAGE_USER_EMAIL"
+BIGQUERY_MODEL_USAGE_EXCLUDED_USER_EMAILS_ENV_VAR = (
+    "BIGQUERY_MODEL_USAGE_EXCLUDED_USER_EMAILS"
+)
 
 
 def enrich_models_with_bigquery_usage(
@@ -59,18 +62,29 @@ def _fetch_usage_data(
             "Install it before using --model-usage-table."
         ) from e
 
-    user_emails = _get_user_emails_from_env()
-    if not user_emails:
+    mode, emails = _resolve_usage_filter()
+    if mode == "whitelist" and not emails:
         raise RuntimeError(
-            "Model usage enrichment requires the "
-            f"{BIGQUERY_MODEL_USAGE_USER_EMAILS_ENV_VAR} environment variable "
-            f"(or legacy {LEGACY_MODEL_USAGE_USER_EMAIL_ENV_VAR})."
+            "Model usage enrichment requires either the "
+            f"{BIGQUERY_MODEL_USAGE_EXCLUDED_USER_EMAILS_ENV_VAR} (blacklist) or the "
+            f"{BIGQUERY_MODEL_USAGE_USER_EMAILS_ENV_VAR} (whitelist) environment "
+            f"variable (or legacy {LEGACY_MODEL_USAGE_USER_EMAIL_ENV_VAR})."
         )
+
+    if mode == "blacklist":
+        param_name = "excluded_emails"
+        # NOT IN UNNEST(@excluded_emails): count every principal except the
+        # configured noise/automation accounts. An empty blacklist excludes
+        # nobody, i.e. counts everyone.
+        email_predicate = "user_email NOT IN UNNEST(@excluded_emails)"
+    else:
+        param_name = "user_emails"
+        email_predicate = "user_email IN UNNEST(@user_emails)"
 
     client = bigquery.Client()
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
-            bigquery.ArrayQueryParameter("user_emails", "STRING", user_emails),
+            bigquery.ArrayQueryParameter(param_name, "STRING", emails),
         ]
     )
 
@@ -79,7 +93,7 @@ def _fetch_usage_data(
             model_name,
             COUNT(*) AS query_count
         FROM `{table_name}`
-        WHERE user_email IN UNNEST(@user_emails)
+        WHERE {email_predicate}
           AND model_name IS NOT NULL
           AND query_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)
         GROUP BY 1
@@ -90,7 +104,7 @@ def _fetch_usage_data(
             query_date,
             COUNT(*) AS query_count
         FROM `{table_name}`
-        WHERE user_email IN UNNEST(@user_emails)
+        WHERE {email_predicate}
           AND model_name IS NOT NULL
           AND query_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 MONTH)
         GROUP BY 1, 2
@@ -112,13 +126,43 @@ def _fetch_usage_data(
     return monthly_counts, dict(daily_counts)
 
 
+def _split_emails(raw_value: str) -> list[str]:
+    """Parse a comma-separated email list, trimming blanks."""
+    return [part.strip() for part in raw_value.split(",") if part.strip()]
+
+
 def _get_user_emails_from_env() -> list[str]:
-    """Read configured usage user emails from env vars."""
+    """Read configured usage user emails (whitelist) from env vars."""
     raw_value = os.environ.get(BIGQUERY_MODEL_USAGE_USER_EMAILS_ENV_VAR)
     if raw_value is None:
         raw_value = os.environ.get(LEGACY_MODEL_USAGE_USER_EMAIL_ENV_VAR, "")
 
-    return [part.strip() for part in raw_value.split(",") if part.strip()]
+    return _split_emails(raw_value)
+
+
+def _resolve_usage_filter() -> tuple[str, list[str]]:
+    """Resolve which user_email filter to apply from the environment.
+
+    Returns ``(mode, emails)`` where ``mode`` is ``"blacklist"`` or
+    ``"whitelist"``:
+
+    - **Blacklist** is selected whenever
+      ``BIGQUERY_MODEL_USAGE_EXCLUDED_USER_EMAILS`` is *present* in the
+      environment — even when set to an empty string. An empty blacklist means
+      "count every principal" (enrichment stays enabled). This is the preferred
+      mode: usage then reflects genuine downstream consumption (BI tools +
+      humans) rather than only a single whitelisted service account.
+    - **Whitelist** (legacy) is the fallback when the blacklist var is unset; it
+      counts only the configured ``BIGQUERY_MODEL_USAGE_USER_EMAILS`` and
+      requires a non-empty list.
+
+    Blacklist takes precedence when both are configured.
+    """
+    excluded_raw = os.environ.get(BIGQUERY_MODEL_USAGE_EXCLUDED_USER_EMAILS_ENV_VAR)
+    if excluded_raw is not None:
+        return "blacklist", _split_emails(excluded_raw)
+
+    return "whitelist", _get_user_emails_from_env()
 
 
 def _build_daily_series(
