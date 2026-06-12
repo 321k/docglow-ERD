@@ -11,6 +11,7 @@ import { ErdCanvas } from '../components/erd/ErdCanvas'
 import { FilterDropdown } from '../components/ui/FilterDropdown'
 import type { FilterState } from '../components/ui/FilterDropdown'
 import { Markdown } from '../components/Markdown'
+import { AccessBadges } from '../components/common/AccessBadges'
 import { materializationLabel } from '../utils/colors'
 import { formatFqn } from '../utils/formatting'
 import { getSubgraph, type LineageDirection } from '../utils/graph'
@@ -334,6 +335,7 @@ export function ModelPage() {
             ))}
           </div>
         )}
+        <AccessBadges meta={model.meta} size="sm" className="mt-2" />
       </div>
 
       {model.usage && <UsageCard usage={model.usage} />}

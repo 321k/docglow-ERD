@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import type { DocglowColumn, ColumnProfile, TopValue, HistogramBin, ColumnLineageDependency, ColumnDownstreamDependency, ColumnLineageData, LineageBadgeConfig } from '../../types'
 import { useProjectStore } from '../../stores/projectStore'
 import { TestBadge } from '../tests/TestBadge'
+import { AccessBadges } from '../common/AccessBadges'
 import { formatNumber, formatPercent } from '../../utils/formatting'
 import { ColumnTraceDrawer } from './ColumnTraceDrawer'
 
@@ -624,6 +625,7 @@ export function ColumnTable({ columns, columnLineage, columnDownstream, modelId,
                             <RoleBadge role={col.insights.role} confidence={col.insights.confidence} />
                           </div>
                         )}
+                        <AccessBadges meta={col.meta} size="xs" className="mt-0.5" />
                       </div>
                     </div>
 
