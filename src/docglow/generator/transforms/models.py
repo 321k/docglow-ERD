@@ -85,7 +85,10 @@ def transform_model(
         "database": node.database or "",
         "materialization": (node.config.materialized or ""),
         "tags": list(node.tags),
-        "meta": dict(node.meta),
+        # Merge config.meta with top-level meta so access attributes declared
+        # under `config: { meta: ... }` (the modern dbt location) are surfaced.
+        # Top-level meta wins on key conflicts to preserve prior behaviour.
+        "meta": {**dict(node.config.meta), **dict(node.meta)},
         "path": node.original_file_path.replace("\\", "/"),
         "folder": _get_folder(node.original_file_path),
         "raw_sql": node.raw_code,
@@ -152,12 +155,24 @@ def _merge_columns(
         catalog_col = catalog_columns.get(col_name) or catalog_columns.get(col_name.lower())
         manifest_col = manifest_columns.get(col_name) or manifest_columns.get(col_name.lower())
 
+        # Merge column-level config.meta (modern dbt location) with top-level
+        # column meta so per-column access attributes are surfaced. Top-level
+        # meta wins on key conflicts.
+        col_meta: dict[str, Any] = {}
+        if manifest_col:
+            raw_config = getattr(manifest_col, "config", None)
+            if isinstance(raw_config, dict):
+                config_meta = raw_config.get("meta")
+                if isinstance(config_meta, dict):
+                    col_meta.update(config_meta)
+            col_meta.update(dict(manifest_col.meta))
+
         columns.append(
             {
                 "name": col_name,
                 "description": manifest_col.description if manifest_col else "",
                 "data_type": catalog_col.type if catalog_col else "",
-                "meta": dict(manifest_col.meta) if manifest_col else {},
+                "meta": col_meta,
                 "tags": list(manifest_col.tags) if manifest_col else [],
                 "tests": column_tests.get(col_name.lower(), []),
                 "profile": None,
