@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useSearchStore } from '../stores/searchStore'
+import { buildResourcePath } from '../utils/resourceRoutes'
 
 export function SearchPage() {
   const [searchParams] = useSearchParams()
@@ -38,7 +39,7 @@ export function SearchPage() {
         type="text"
         value={localQuery}
         onChange={e => handleSearch(e.target.value)}
-        placeholder="Search models, columns, sources..."
+        placeholder="Search models, columns, sources, exposures..."
         className="w-full px-4 py-2 text-sm border border-[var(--border)] rounded-lg
                    bg-[var(--bg)] outline-none focus:border-primary mb-6"
         autoFocus
@@ -50,11 +51,13 @@ export function SearchPage() {
             {results.length} result{results.length !== 1 ? 's' : ''}
           </p>
           {results.map(result => {
-            const type = result.resource_type === 'source' ? 'source' : 'model'
+            const hash = result.resource_type === 'column' && result.column_name
+              ? `#col-${result.column_name}`
+              : ''
             return (
               <button
-                key={result.unique_id}
-                onClick={() => navigate(`/${type}/${encodeURIComponent(result.unique_id)}`)}
+                key={result.id ?? (result.column_name ? `${result.unique_id}::${result.column_name}` : result.unique_id)}
+                onClick={() => navigate(buildResourcePath(result.unique_id, hash))}
                 className="w-full text-left p-4 border border-[var(--border)] rounded-lg
                            hover:border-primary/50 transition-colors cursor-pointer block"
               >

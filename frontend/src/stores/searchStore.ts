@@ -21,6 +21,13 @@ interface SearchState {
 let resourceIndex: MiniSearch<SearchEntry> | null = null
 let columnIndex: MiniSearch<SearchEntry> | null = null
 
+function normalizeSearchEntries(entries: SearchEntry[]): SearchEntry[] {
+  return entries.map((entry) => ({
+    ...entry,
+    id: entry.id ?? (entry.column_name ? `${entry.unique_id}::${entry.column_name}` : entry.unique_id),
+  }))
+}
+
 function buildIndex(
   entries: SearchEntry[],
   fields: string[],
@@ -48,8 +55,9 @@ export const useSearchStore = create<SearchState>((set) => ({
   selectedIndex: 0,
 
   initIndex: (entries) => {
-    const resources = entries.filter(e => e.resource_type !== 'column')
-    const columns = entries.filter(e => e.resource_type === 'column')
+    const normalizedEntries = normalizeSearchEntries(entries)
+    const resources = normalizedEntries.filter(e => e.resource_type !== 'column')
+    const columns = normalizedEntries.filter(e => e.resource_type === 'column')
 
     resourceIndex = buildIndex(
       resources,

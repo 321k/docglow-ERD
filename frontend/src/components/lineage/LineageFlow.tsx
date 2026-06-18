@@ -20,6 +20,7 @@ import type { LineageNode, LineageEdge, LayerDefinition, ColumnLineageData } fro
 import { getUnionChain } from '../../utils/graphTraversal'
 import { useColumnHighlightStore } from '../../stores/columnHighlightStore'
 import { buildReverseIndex, getColumnTraceResult } from '../../utils/columnLineageGraph'
+import { buildResourcePath } from '../../utils/resourceRoutes'
 import { DagNode } from './DagNode'
 import { FolderNode } from './FolderNode'
 
@@ -604,6 +605,7 @@ function LineageFlowInner({
           materialization: ln.data.materialization,
           test_status: ln.data.test_status,
           isActive: false, // Updated in applyHighlightPass below
+          isSelected: false, // Updated in applyHighlightPass below
           folder: ln.data.folder,
           schema: ln.data.schema,
           columns: nodeColumns,
@@ -650,18 +652,20 @@ function LineageFlowInner({
       const isFolder = node.type === 'folder'
       const highlighted = !highlightedSet || highlightedSet.has(node.id)
       const isPinnedNode = pinnedIds?.has(node.id) ?? false
+      const isSelectedNode = node.id === selectedNodeId
 
       // Only create new objects if something actually changed
       const currentOpacity = (node.style as Record<string, unknown>)?.opacity
       const targetOpacity = highlighted ? (currentOpacity === 0.3 ? 0.3 : 1) : 0.4
       const currentIsActive = (node.data as Record<string, unknown>)?.isActive
+      const currentIsSelected = (node.data as Record<string, unknown>)?.isSelected
       const currentNoColumnData = (node.data as Record<string, unknown>)?.noColumnData
       const targetNoColumnData = !isFolder && columnTrace != null
         && !(columnLineageData != null && (columnLineageData[node.id] != null || upstreamColumnLineageIds.has(node.id)))
         && highlightedSet?.has(node.id)
 
       const styleChanged = currentOpacity !== targetOpacity
-      const dataChanged = currentIsActive !== isPinnedNode || currentNoColumnData !== targetNoColumnData
+      const dataChanged = currentIsActive !== isPinnedNode || currentIsSelected !== isSelectedNode || currentNoColumnData !== targetNoColumnData
 
       if (!styleChanged && !dataChanged && !override) return node
 
@@ -669,14 +673,14 @@ function LineageFlowInner({
         ...node,
         ...(override ? { position: { x: override.x, y: override.y } } : {}),
         ...(dataChanged ? {
-          data: { ...node.data, isActive: isPinnedNode, noColumnData: targetNoColumnData },
+          data: { ...node.data, isActive: isPinnedNode, isSelected: isSelectedNode, noColumnData: targetNoColumnData },
         } : {}),
         ...(styleChanged ? {
           style: { ...node.style, opacity: targetOpacity },
         } : {}),
       }
     })
-  }, [rfNodes, dragOverrides, highlightedSet, pinnedIds, columnTrace, columnLineageData, upstreamColumnLineageIds])
+  }, [rfNodes, dragOverrides, highlightedSet, pinnedIds, selectedNodeId, columnTrace, columnLineageData, upstreamColumnLineageIds])
 
   // Handle node drag changes
   const handleNodesChange = useCallback((changes: NodeChange[]) => {
@@ -848,8 +852,7 @@ function LineageFlowInner({
 
       // Navigate to detail page
       onNavigateAway?.()
-      const type = node.id.startsWith('source.') ? 'source' : 'model'
-      navigate(`/${type}/${encodeURIComponent(node.id)}`)
+      navigate(buildResourcePath(node.id))
     } else {
       // Start single-click timer
       clickTimerRef.current = setTimeout(() => {
