@@ -104,9 +104,11 @@ declare module "@docglow/shared-types" {
     readonly ui?: UiConfig;
   }
 
-  // Exposure dashboard URL added after v0.1.0; remove once shared-types is republished.
+  // Exposure fields added after v0.1.0; remove once shared-types is republished.
   interface DocglowExposure {
     readonly url: string;
+    readonly label: string;
+    readonly maturity: string;
   }
 }
 

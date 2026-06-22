@@ -2,10 +2,68 @@ import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Markdown } from '../components/Markdown'
 import { LineageFlow } from '../components/lineage/LineageFlow'
+import { TestBadge } from '../components/tests/TestBadge'
 import { useProjectStore } from '../stores/projectStore'
 import { getSubgraph } from '../utils/graph'
 import { buildModelColumnsMap } from '../utils/modelColumns'
 import { buildResourcePath, getResourcePageTypeFromId } from '../utils/resourceRoutes'
+import type { TestStatus } from '../utils/colors'
+import type { DocglowModel } from '../types'
+
+const MATURITY_STYLES: Record<string, string> = {
+  high: 'bg-success/10 text-success',
+  medium: 'bg-warning/10 text-warning',
+  low: 'bg-neutral/10 text-neutral',
+}
+
+interface UpstreamHealth {
+  upstreamModels: number
+  modelsWithTests: number
+  totalTests: number
+  pass: number
+  warn: number
+  fail: number
+  overall: TestStatus
+}
+
+// Roll up test results across the exposure's resolvable upstream models so the
+// page can surface a dbt-Explorer-style "data health" summary without any new
+// data plumbing — every model already carries its own test_results.
+function computeUpstreamHealth(
+  dependsOn: string[],
+  getModel: (uniqueId: string) => DocglowModel | undefined,
+): UpstreamHealth | null {
+  let upstreamModels = 0
+  let modelsWithTests = 0
+  let totalTests = 0
+  let pass = 0
+  let warn = 0
+  let fail = 0
+
+  for (const id of dependsOn) {
+    const model = getModel(id)
+    if (!model) continue
+    upstreamModels += 1
+    const results = model.test_results ?? []
+    if (results.length > 0) modelsWithTests += 1
+    for (const result of results) {
+      switch (result.status) {
+        case 'pass': pass += 1; totalTests += 1; break
+        case 'warn': warn += 1; totalTests += 1; break
+        case 'fail':
+        case 'error': fail += 1; totalTests += 1; break
+        default: break
+      }
+    }
+  }
+
+  if (upstreamModels === 0) return null
+
+  const overall: TestStatus =
+    fail > 0 ? 'fail' : warn > 0 ? 'warn' : totalTests > 0 ? 'pass' : 'none'
+
+  return { upstreamModels, modelsWithTests, totalTests, pass, warn, fail, overall }
+}
 
 function formatOwner(owner: Record<string, string>): string | null {
   const preferred = ['name', 'email', 'team']
@@ -24,10 +82,15 @@ function formatOwner(owner: Record<string, string>): string | null {
 export function ExposurePage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { data, getExposure } = useProjectStore()
+  const { data, getExposure, getModel } = useProjectStore()
 
   const decodedId = id ? decodeURIComponent(id) : ''
   const exposure = decodedId ? getExposure(decodedId) : undefined
+
+  const upstreamHealth = useMemo(
+    () => (exposure ? computeUpstreamHealth(exposure.depends_on, getModel) : null),
+    [exposure, getModel],
+  )
 
   // Exposures are terminal nodes — only their upstream chain is meaningful.
   const [depth, setDepth] = useState(2)
@@ -66,15 +129,43 @@ export function ExposurePage() {
   }
 
   const owner = formatOwner(exposure.owner)
+  const maturity = exposure.maturity?.trim().toLowerCase()
+  const title = exposure.label?.trim() || exposure.name
 
   return (
     <div className="max-w-5xl">
       <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <h1 className="text-2xl font-bold">{exposure.name}</h1>
-          <span className="px-2 py-0.5 text-xs font-medium rounded bg-warning/10 text-warning">
-            Exposure
-          </span>
+        <div className="flex items-start justify-between gap-4 mb-2">
+          <div className="flex items-center gap-3 flex-wrap min-w-0">
+            <h1 className="text-2xl font-bold">{title}</h1>
+            <span className="px-2 py-0.5 text-xs font-medium rounded bg-warning/10 text-warning">
+              Exposure
+            </span>
+            {maturity && (
+              <span
+                className={`px-2 py-0.5 text-xs font-medium rounded capitalize ${
+                  MATURITY_STYLES[maturity] ?? 'bg-neutral/10 text-neutral'
+                }`}
+                title="Exposure maturity"
+              >
+                {maturity}
+              </span>
+            )}
+          </div>
+          {exposure.url && (
+            <a
+              href={exposure.url}
+              target="_blank"
+              rel="noreferrer"
+              className="shrink-0 inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm
+                         font-medium text-white hover:brightness-110 transition-all"
+            >
+              Open in Dashboard
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" />
+              </svg>
+            </a>
+          )}
         </div>
         <div className="flex flex-wrap gap-4 text-sm text-[var(--text-muted)]">
           {exposure.type && <span>Type: {exposure.type}</span>}
@@ -83,23 +174,45 @@ export function ExposurePage() {
           </span>
           {owner && <span>Owner: {owner}</span>}
         </div>
-        {exposure.url && (
-          <div className="mt-3 text-sm">
-            <span className="text-[var(--text-muted)]">Dashboard: </span>
-            <a
-              href={exposure.url}
-              target="_blank"
-              rel="noreferrer"
-              className="text-primary hover:underline break-all"
-            >
-              {exposure.url}
-            </a>
-          </div>
-        )}
         {exposure.description && (
           <Markdown content={exposure.description} className="mt-3 text-sm" />
         )}
       </div>
+
+      {upstreamHealth && (
+        <div className="mb-6 rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] p-4">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h2 className="text-sm font-semibold">Upstream data health</h2>
+            <TestBadge
+              status={upstreamHealth.overall}
+              label={
+                upstreamHealth.overall === 'none'
+                  ? 'no tests'
+                  : upstreamHealth.overall === 'pass'
+                    ? 'healthy'
+                    : upstreamHealth.overall === 'warn'
+                      ? 'warnings'
+                      : 'failing'
+              }
+            />
+          </div>
+          <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-[var(--text-muted)]">
+            <span>
+              {upstreamHealth.modelsWithTests}/{upstreamHealth.upstreamModels} upstream models tested
+            </span>
+            {upstreamHealth.totalTests > 0 ? (
+              <span>
+                {upstreamHealth.totalTests} tests:{' '}
+                <span className="text-success">{upstreamHealth.pass} passing</span>
+                {upstreamHealth.warn > 0 && <>, <span className="text-warning">{upstreamHealth.warn} warning</span></>}
+                {upstreamHealth.fail > 0 && <>, <span className="text-danger">{upstreamHealth.fail} failing</span></>}
+              </span>
+            ) : (
+              <span>No tests defined on upstream models.</span>
+            )}
+          </div>
+        </div>
+      )}
 
       {exposure.tags.length > 0 && (
         <div className="mb-6">

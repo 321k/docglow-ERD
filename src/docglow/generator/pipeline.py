@@ -237,6 +237,8 @@ def stage_transform_exposures_metrics(ctx: PipelineContext) -> None:
             "type": exposure.type,
             "description": exposure.description,
             "url": exposure.url,
+            "label": exposure.label,
+            "maturity": exposure.maturity,
             "depends_on": exposure.depends_on.nodes,
             "owner": dict(exposure.owner),
             "tags": list(exposure.tags),
