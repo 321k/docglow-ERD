@@ -1,12 +1,11 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { Markdown } from '../components/Markdown'
 import { LineageFlow } from '../components/lineage/LineageFlow'
 import { TestBadge } from '../components/tests/TestBadge'
 import { useProjectStore } from '../stores/projectStore'
 import { getSubgraph } from '../utils/graph'
 import { buildModelColumnsMap } from '../utils/modelColumns'
-import { buildResourcePath, getResourcePageTypeFromId } from '../utils/resourceRoutes'
 import type { TestStatus } from '../utils/colors'
 import type { DocglowModel } from '../types'
 
@@ -81,7 +80,6 @@ function formatOwner(owner: Record<string, string>): string | null {
 
 export function ExposurePage() {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
   const { data, getExposure, getModel } = useProjectStore()
 
   const decodedId = id ? decodeURIComponent(id) : ''
@@ -229,33 +227,6 @@ export function ExposurePage() {
           </div>
         </div>
       )}
-
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold mb-3">Upstream Dependencies</h2>
-        {exposure.depends_on.length === 0 ? (
-          <div className="border border-[var(--border)] rounded-lg p-4 text-sm text-[var(--text-muted)]">
-            No upstream dependencies are declared for this exposure.
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {exposure.depends_on.map((dependencyId) => (
-              <button
-                key={dependencyId}
-                onClick={() => navigate(buildResourcePath(dependencyId))}
-                className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)]
-                           bg-[var(--bg-surface)] px-3 py-2 text-sm hover:border-primary/40
-                           hover:text-primary transition-colors cursor-pointer"
-                title={dependencyId}
-              >
-                <span className="text-xs uppercase text-[var(--text-muted)]">
-                  {getResourcePageTypeFromId(dependencyId)}
-                </span>
-                <span className="font-medium">{dependencyId.split('.').pop() ?? dependencyId}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
 
       <div>
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
