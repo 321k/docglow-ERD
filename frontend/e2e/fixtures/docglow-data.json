@@ -2963,6 +2963,7 @@
   },
   "search_index": [
     {
+      "id": "model.jaffle_shop.metricflow_time_spine",
       "unique_id": "model.jaffle_shop.metricflow_time_spine",
       "name": "metricflow_time_spine",
       "resource_type": "model",
@@ -2972,6 +2973,7 @@
       "sql_snippet": "-- metricflow_time_spine.sql\nwith\n\ndays as (\n\n    --for BQ adapters use \"DATE('01/01/2000','mm/dd/yyyy')\"\n    {{ dbt_date.get_base_dates(n_dateparts=365*10, datepart=\"day\") }}\n\n),\n\ncast_to_date as (\n\n    select cast(date_day as date) as date_day\n\n    from days\n\n)\n\nselect * from cast_to_date"
     },
     {
+      "id": "model.jaffle_shop.locations",
       "unique_id": "model.jaffle_shop.locations",
       "name": "locations",
       "resource_type": "model",
@@ -2981,6 +2983,7 @@
       "sql_snippet": "with\n\nlocations as (\n\n    select * from {{ ref('stg_locations') }}\n\n)\n\nselect * from locations"
     },
     {
+      "id": "model.jaffle_shop.orders",
       "unique_id": "model.jaffle_shop.orders",
       "name": "orders",
       "resource_type": "model",
@@ -2990,6 +2993,7 @@
       "sql_snippet": "with\n\norders as (\n\n    select * from {{ ref('stg_orders') }}\n\n),\n\norder_items as (\n\n    select * from {{ ref('order_items') }}\n\n),\n\norder_items_summary as (\n\n    select\n        order_id,\n\n        sum(supply_cost) as order_cost,\n        sum(product_price) as order_items_subtotal,\n        count(order_item_id) as count_order_items,\n        sum(\n            case\n                when is_food_item then 1\n                else 0\n            end\n        ) as count_food_items,\n        sum(\n            cas"
     },
     {
+      "id": "model.jaffle_shop.customers",
       "unique_id": "model.jaffle_shop.customers",
       "name": "customers",
       "resource_type": "model",
@@ -2999,6 +3003,7 @@
       "sql_snippet": "with\n\ncustomers as (\n\n    select * from {{ ref('stg_customers') }}\n\n),\n\norders as (\n\n    select * from {{ ref('orders') }}\n\n),\n\ncustomer_orders_summary as (\n\n    select\n        orders.customer_id,\n\n        count(distinct orders.order_id) as count_lifetime_orders,\n        count(distinct orders.order_id) > 1 as is_repeat_buyer,\n        min(orders.ordered_at) as first_ordered_at,\n        max(orders.ordered_at) as last_ordered_at,\n        sum(orders.subtotal) as lifetime_spend_pretax,\n        sum(or"
     },
     {
+      "id": "model.jaffle_shop.order_items",
       "unique_id": "model.jaffle_shop.order_items",
       "name": "order_items",
       "resource_type": "model",
@@ -3008,6 +3013,7 @@
       "sql_snippet": "with\n\norder_items as (\n\n    select * from {{ ref('stg_order_items') }}\n\n),\n\n\norders as (\n\n    select * from {{ ref('stg_orders') }}\n\n),\n\nproducts as (\n\n    select * from {{ ref('stg_products') }}\n\n),\n\nsupplies as (\n\n    select * from {{ ref('stg_supplies') }}\n\n),\n\norder_supplies_summary as (\n\n    select\n        product_id,\n\n        sum(supply_cost) as supply_cost\n\n    from supplies\n\n    group by 1\n\n),\n\njoined as (\n\n    select\n        order_items.*,\n\n        orders.ordered_at,\n\n        products.p"
     },
     {
+      "id": "model.jaffle_shop.supplies",
       "unique_id": "model.jaffle_shop.supplies",
       "name": "supplies",
       "resource_type": "model",
@@ -3017,6 +3023,7 @@
       "sql_snippet": "with\n\nsupplies as (\n\n    select * from {{ ref('stg_supplies') }}\n\n)\n\nselect * from supplies"
     },
     {
+      "id": "model.jaffle_shop.products",
       "unique_id": "model.jaffle_shop.products",
       "name": "products",
       "resource_type": "model",
@@ -3026,6 +3033,7 @@
       "sql_snippet": "with\n\nproducts as (\n\n    select * from {{ ref('stg_products') }}\n\n)\n\nselect * from products"
     },
     {
+      "id": "model.jaffle_shop.stg_orders",
       "unique_id": "model.jaffle_shop.stg_orders",
       "name": "stg_orders",
       "resource_type": "model",
@@ -3035,6 +3043,7 @@
       "sql_snippet": "with\n\nsource as (\n\n    select * from {{ source('ecom', 'raw_orders') }}\n\n),\n\nrenamed as (\n\n    select\n\n        ----------  ids\n        id as order_id,\n        store_id as location_id,\n        customer as customer_id,\n\n        ---------- numerics\n        subtotal as subtotal_cents,\n        tax_paid as tax_paid_cents,\n        order_total as order_total_cents,\n        {{ cents_to_dollars('subtotal') }} as subtotal,\n        {{ cents_to_dollars('tax_paid') }} as tax_paid,\n        {{ cents_to_dollars("
     },
     {
+      "id": "model.jaffle_shop.stg_customers",
       "unique_id": "model.jaffle_shop.stg_customers",
       "name": "stg_customers",
       "resource_type": "model",
@@ -3044,6 +3053,7 @@
       "sql_snippet": "with\n\nsource as (\n\n    select * from {{ source('ecom', 'raw_customers') }}\n\n),\n\nrenamed as (\n\n    select\n\n        ----------  ids\n        id as customer_id,\n\n        ---------- text\n        name as customer_name\n\n    from source\n\n)\n\nselect * from renamed"
     },
     {
+      "id": "model.jaffle_shop.stg_locations",
       "unique_id": "model.jaffle_shop.stg_locations",
       "name": "stg_locations",
       "resource_type": "model",
@@ -3053,6 +3063,7 @@
       "sql_snippet": "with\n\nsource as (\n\n    select * from {{ source('ecom', 'raw_stores') }}\n\n),\n\nrenamed as (\n\n    select\n\n        ----------  ids\n        id as location_id,\n\n        ---------- text\n        name as location_name,\n\n        ---------- numerics\n        tax_rate,\n\n        ---------- timestamps\n        {{ dbt.date_trunc('day', 'opened_at') }} as opened_date\n\n    from source\n\n)\n\nselect * from renamed"
     },
     {
+      "id": "model.jaffle_shop.stg_products",
       "unique_id": "model.jaffle_shop.stg_products",
       "name": "stg_products",
       "resource_type": "model",
@@ -3062,6 +3073,7 @@
       "sql_snippet": "with\n\nsource as (\n\n    select * from {{ source('ecom', 'raw_products') }}\n\n),\n\nrenamed as (\n\n    select\n\n        ----------  ids\n        sku as product_id,\n\n        ---------- text\n        name as product_name,\n        type as product_type,\n        description as product_description,\n\n\n        ---------- numerics\n        {{ cents_to_dollars('price') }} as product_price,\n\n        ---------- booleans\n        coalesce(type = 'jaffle', false) as is_food_item,\n\n        coalesce(type = 'beverage', fal"
     },
     {
+      "id": "model.jaffle_shop.stg_order_items",
       "unique_id": "model.jaffle_shop.stg_order_items",
       "name": "stg_order_items",
       "resource_type": "model",
@@ -3071,6 +3083,7 @@
       "sql_snippet": "with\n\nsource as (\n\n    select * from {{ source('ecom', 'raw_items') }}\n\n),\n\nrenamed as (\n\n    select\n\n        ----------  ids\n        id as order_item_id,\n        order_id,\n        sku as product_id\n\n    from source\n\n)\n\nselect * from renamed"
     },
     {
+      "id": "model.jaffle_shop.stg_supplies",
       "unique_id": "model.jaffle_shop.stg_supplies",
       "name": "stg_supplies",
       "resource_type": "model",
@@ -3080,6 +3093,7 @@
       "sql_snippet": "with\n\nsource as (\n\n    select * from {{ source('ecom', 'raw_supplies') }}\n\n),\n\nrenamed as (\n\n    select\n\n        ----------  ids\n        {{ dbt_utils.generate_surrogate_key(['id', 'sku']) }} as supply_uuid,\n        id as supply_id,\n        sku as product_id,\n\n        ---------- text\n        name as supply_name,\n\n        ---------- numerics\n        {{ cents_to_dollars('cost') }} as supply_cost,\n\n        ---------- booleans\n        perishable as is_perishable_supply\n\n    from source\n\n)\n\nselect * f"
     },
     {
+      "id": "source.jaffle_shop.ecom.raw_customers",
       "unique_id": "source.jaffle_shop.ecom.raw_customers",
       "name": "raw_customers",
       "resource_type": "source",
@@ -3089,6 +3103,7 @@
       "sql_snippet": ""
     },
     {
+      "id": "source.jaffle_shop.ecom.raw_orders",
       "unique_id": "source.jaffle_shop.ecom.raw_orders",
       "name": "raw_orders",
       "resource_type": "source",
@@ -3098,6 +3113,7 @@
       "sql_snippet": ""
     },
     {
+      "id": "source.jaffle_shop.ecom.raw_items",
       "unique_id": "source.jaffle_shop.ecom.raw_items",
       "name": "raw_items",
       "resource_type": "source",
@@ -3107,6 +3123,7 @@
       "sql_snippet": ""
     },
     {
+      "id": "source.jaffle_shop.ecom.raw_stores",
       "unique_id": "source.jaffle_shop.ecom.raw_stores",
       "name": "raw_stores",
       "resource_type": "source",
@@ -3116,6 +3133,7 @@
       "sql_snippet": ""
     },
     {
+      "id": "source.jaffle_shop.ecom.raw_products",
       "unique_id": "source.jaffle_shop.ecom.raw_products",
       "name": "raw_products",
       "resource_type": "source",
@@ -3125,6 +3143,7 @@
       "sql_snippet": ""
     },
     {
+      "id": "source.jaffle_shop.ecom.raw_supplies",
       "unique_id": "source.jaffle_shop.ecom.raw_supplies",
       "name": "raw_supplies",
       "resource_type": "source",

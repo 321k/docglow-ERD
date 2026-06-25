@@ -39,7 +39,7 @@ export function SearchPage() {
         type="text"
         value={localQuery}
         onChange={e => handleSearch(e.target.value)}
-        placeholder="Search models, columns, sources, exposures..."
+        placeholder="Search models, columns, sources..."
         className="w-full px-4 py-2 text-sm border border-[var(--border)] rounded-lg
                    bg-[var(--bg)] outline-none focus:border-primary mb-6"
         autoFocus

@@ -89,7 +89,7 @@ export function SearchModal() {
             value={localQuery}
             onChange={e => handleInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Search models, columns, sources, exposures..."
+            placeholder="Search models, columns, sources..."
             className="w-full px-3 py-3 text-sm bg-transparent outline-none"
           />
           <kbd className="text-xs text-[var(--text-muted)] bg-[var(--bg-surface)] px-1.5 py-0.5 rounded border border-[var(--border)]">
