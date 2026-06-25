@@ -2071,7 +2071,70 @@
   },
   "seeds": {},
   "snapshots": {},
-  "exposures": {},
+  "exposures": {
+    "exposure.jaffle_shop.executive_orders_dashboard": {
+      "unique_id": "exposure.jaffle_shop.executive_orders_dashboard",
+      "name": "executive_orders_dashboard",
+      "type": "dashboard",
+      "description": "Executive KPIs for daily orders, revenue, and active customers. Refreshed hourly.",
+      "url": "https://bi.example.com/dashboards/executive-orders",
+      "label": "executive_orders_dashboard",
+      "maturity": "high",
+      "depends_on": [
+        "model.jaffle_shop.orders",
+        "model.jaffle_shop.customers"
+      ],
+      "owner": {
+        "name": "Analytics Team",
+        "email": "analytics@example.com"
+      },
+      "tags": [
+        "finance",
+        "executive"
+      ]
+    },
+    "exposure.jaffle_shop.churn_prediction_model": {
+      "unique_id": "exposure.jaffle_shop.churn_prediction_model",
+      "name": "churn_prediction_model",
+      "type": "ml",
+      "description": "ML pipeline predicting customer churn from order history and item-level behaviour.",
+      "url": "https://ml.example.com/models/churn-v3",
+      "label": "churn_prediction_model",
+      "maturity": "medium",
+      "depends_on": [
+        "model.jaffle_shop.order_items",
+        "model.jaffle_shop.customers"
+      ],
+      "owner": {
+        "name": "Data Science",
+        "email": "ds@example.com"
+      },
+      "tags": [
+        "ml",
+        "retention"
+      ]
+    },
+    "exposure.jaffle_shop.weekly_supply_report": {
+      "unique_id": "exposure.jaffle_shop.weekly_supply_report",
+      "name": "weekly_supply_report",
+      "type": "analysis",
+      "description": "Weekly notebook analysing supply costs per product.",
+      "url": "https://notebooks.example.com/weekly-supply",
+      "label": "weekly_supply_report",
+      "maturity": "low",
+      "depends_on": [
+        "model.jaffle_shop.supplies",
+        "model.jaffle_shop.products"
+      ],
+      "owner": {
+        "name": "Ops",
+        "email": "ops@example.com"
+      },
+      "tags": [
+        "ops"
+      ]
+    }
+  },
   "metrics": {
     "metric.jaffle_shop.revenue": {
       "unique_id": "metric.jaffle_shop.revenue",
@@ -2554,6 +2617,53 @@
         "tags": [],
         "layer": 0,
         "layer_auto": false
+      },
+      {
+        "id": "exposure.jaffle_shop.executive_orders_dashboard",
+        "name": "executive_orders_dashboard",
+        "resource_type": "exposure",
+        "materialization": "",
+        "schema": "",
+        "test_status": "none",
+        "has_description": true,
+        "folder": "",
+        "tags": [
+          "finance",
+          "executive"
+        ],
+        "layer": 4,
+        "layer_auto": false
+      },
+      {
+        "id": "exposure.jaffle_shop.churn_prediction_model",
+        "name": "churn_prediction_model",
+        "resource_type": "exposure",
+        "materialization": "",
+        "schema": "",
+        "test_status": "none",
+        "has_description": true,
+        "folder": "",
+        "tags": [
+          "ml",
+          "retention"
+        ],
+        "layer": 4,
+        "layer_auto": false
+      },
+      {
+        "id": "exposure.jaffle_shop.weekly_supply_report",
+        "name": "weekly_supply_report",
+        "resource_type": "exposure",
+        "materialization": "",
+        "schema": "",
+        "test_status": "none",
+        "has_description": true,
+        "folder": "",
+        "tags": [
+          "ops"
+        ],
+        "layer": 4,
+        "layer_auto": false
       }
     ],
     "edges": [
@@ -2624,6 +2734,30 @@
       {
         "source": "source.jaffle_shop.ecom.raw_supplies",
         "target": "model.jaffle_shop.stg_supplies"
+      },
+      {
+        "source": "model.jaffle_shop.orders",
+        "target": "exposure.jaffle_shop.executive_orders_dashboard"
+      },
+      {
+        "source": "model.jaffle_shop.customers",
+        "target": "exposure.jaffle_shop.executive_orders_dashboard"
+      },
+      {
+        "source": "model.jaffle_shop.order_items",
+        "target": "exposure.jaffle_shop.churn_prediction_model"
+      },
+      {
+        "source": "model.jaffle_shop.customers",
+        "target": "exposure.jaffle_shop.churn_prediction_model"
+      },
+      {
+        "source": "model.jaffle_shop.supplies",
+        "target": "exposure.jaffle_shop.weekly_supply_report"
+      },
+      {
+        "source": "model.jaffle_shop.products",
+        "target": "exposure.jaffle_shop.weekly_supply_report"
       }
     ],
     "layer_config": [
@@ -2998,6 +3132,30 @@
       "columns": "id, name, cost, perishable, sku",
       "tags": "",
       "sql_snippet": ""
+    },
+    {
+      "id": "exposure.jaffle_shop.executive_orders_dashboard",
+      "unique_id": "exposure.jaffle_shop.executive_orders_dashboard",
+      "name": "executive_orders_dashboard",
+      "resource_type": "exposure",
+      "description": "Executive KPIs for daily orders, revenue, and active customers. Refreshed hourly.",
+      "tags": "finance, executive"
+    },
+    {
+      "id": "exposure.jaffle_shop.churn_prediction_model",
+      "unique_id": "exposure.jaffle_shop.churn_prediction_model",
+      "name": "churn_prediction_model",
+      "resource_type": "exposure",
+      "description": "ML pipeline predicting customer churn from order history and item-level behaviour.",
+      "tags": "ml, retention"
+    },
+    {
+      "id": "exposure.jaffle_shop.weekly_supply_report",
+      "unique_id": "exposure.jaffle_shop.weekly_supply_report",
+      "name": "weekly_supply_report",
+      "resource_type": "exposure",
+      "description": "Weekly notebook analysing supply costs per product.",
+      "tags": "ops"
     }
   ],
   "ai_context": null,
