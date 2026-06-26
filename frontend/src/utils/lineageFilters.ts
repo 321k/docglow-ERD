@@ -3,16 +3,8 @@ import type { FilterState, FilterMode } from '../components/ui/FilterDropdown'
 import type { LineageNode, LineageEdge } from '../types'
 
 export const EMPTY_FILTER: FilterState = { mode: 'include', selected: new Set() }
-export const DEFAULT_TYPES_FILTER: FilterState = { mode: 'exclude', selected: new Set(['exposure']) }
 
 export const RESOURCE_TYPES = ['model', 'source', 'seed', 'snapshot', 'exposure', 'metric']
-
-function cloneFilterState(filter: FilterState): FilterState {
-  return {
-    mode: filter.mode,
-    selected: new Set(filter.selected),
-  }
-}
 
 export function applyFilters(
   nodes: LineageNode[],
@@ -64,10 +56,8 @@ export function applyFilters(
   return { nodes: filtered, edges: filteredEdges }
 }
 
-export function useFilterState(
-  initialState: FilterState = EMPTY_FILTER,
-): [FilterState, (value: string) => void, (mode: FilterMode) => void, () => void] {
-  const [state, setState] = useState<FilterState>(() => cloneFilterState(initialState))
+export function useFilterState(): [FilterState, (value: string) => void, (mode: FilterMode) => void, () => void] {
+  const [state, setState] = useState<FilterState>(EMPTY_FILTER)
 
   const toggle = useCallback((value: string) => {
     setState(prev => {
@@ -83,8 +73,8 @@ export function useFilterState(
   }, [])
 
   const clear = useCallback(() => {
-    setState(cloneFilterState(initialState))
-  }, [initialState])
+    setState(EMPTY_FILTER)
+  }, [])
 
   return [state, toggle, setMode, clear]
 }
