@@ -4,7 +4,6 @@ import type { DocglowColumn, ColumnProfile, TopValue, HistogramBin, ColumnLineag
 import { useProjectStore } from '../../stores/projectStore'
 import { TestBadge } from '../tests/TestBadge'
 import { formatNumber, formatPercent } from '../../utils/formatting'
-import { buildResourcePath } from '../../utils/resourceRoutes'
 import { ColumnTraceDrawer } from './ColumnTraceDrawer'
 
 interface ColumnTableProps {
@@ -173,6 +172,8 @@ function LineageBadge({
   const navigate = useNavigate()
   const badgeConfig = useProjectStore(s => s.data?.ui?.lineage_badge) ?? DEFAULT_BADGE_CONFIG
   const modelName = modelId.split('.').pop() ?? modelId
+  const resourceType = modelId.split('.')[0] ?? 'model'
+  const navType = resourceType === 'source' ? 'source' : 'model'
   const style = TRANSFORMATION_STYLES[transformation] ?? TRANSFORMATION_STYLES.passthrough
   const colLabel = columns.length === 1 ? columns[0] : `{${columns.join(', ')}}`
   const modelDisplay = applyBadgeAbbreviation(modelName, badgeConfig.max_model_chars, badgeConfig.abbreviation)
@@ -186,7 +187,7 @@ function LineageBadge({
     onClick: (e: MouseEvent) => {
       e.stopPropagation()
       const colAnchor = columns.length === 1 ? `#col-${columns[0].toLowerCase()}` : ''
-      navigate(buildResourcePath(modelId, colAnchor))
+      navigate(`/${navType}/${encodeURIComponent(modelId)}${colAnchor}`)
     },
     title: `${direction === 'upstream' ? 'From' : 'To'}: ${modelId}\nColumns: ${columns.join(', ')}\nType: ${transformation}`,
     style: {
