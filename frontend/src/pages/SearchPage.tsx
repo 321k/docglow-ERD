@@ -50,14 +50,10 @@ export function SearchPage() {
           <p className="text-sm text-[var(--text-muted)] mb-3">
             {results.length} result{results.length !== 1 ? 's' : ''}
           </p>
-          {results.map(result => {
-            const hash = result.resource_type === 'column' && result.column_name
-              ? `#col-${result.column_name}`
-              : ''
-            return (
+          {results.map(result => (
               <button
-                key={result.id ?? (result.column_name ? `${result.unique_id}::${result.column_name}` : result.unique_id)}
-                onClick={() => navigate(buildResourcePath(result.unique_id, hash))}
+                key={result.unique_id}
+                onClick={() => navigate(buildResourcePath(result.unique_id))}
                 className="w-full text-left p-4 border border-[var(--border)] rounded-lg
                            hover:border-primary/50 transition-colors cursor-pointer block"
               >
@@ -74,8 +70,7 @@ export function SearchPage() {
                   </p>
                 )}
               </button>
-            )
-          })}
+          ))}
         </div>
       )}
 
