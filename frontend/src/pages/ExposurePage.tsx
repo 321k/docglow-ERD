@@ -145,7 +145,7 @@ export function ExposurePage() {
                 className={`px-2 py-0.5 text-xs font-medium rounded capitalize ${
                   MATURITY_STYLES[maturity] ?? 'bg-neutral/10 text-neutral'
                 }`}
-                title="Exposure maturity"
+                title="Maturity is declared by the exposure's author in dbt (high / medium / low). It is not computed by Docglow."
               >
                 {maturity}
               </span>
