@@ -92,6 +92,7 @@ export function ExposurePage() {
 
   // Exposures are terminal nodes — only their upstream chain is meaningful.
   const [depth, setDepth] = useState(2)
+  const [lineageFullscreen, setLineageFullscreen] = useState(false)
 
   const lineageSubgraph = useMemo(() => {
     if (!data?.lineage || !decodedId) return null
@@ -131,7 +132,7 @@ export function ExposurePage() {
   const title = exposure.label?.trim() || exposure.name
 
   return (
-    <div className="max-w-5xl">
+    <div>
       <div className="mb-6">
         <div className="flex items-start justify-between gap-4 mb-2">
           <div className="flex items-center gap-3 flex-wrap min-w-0">
@@ -228,8 +229,8 @@ export function ExposurePage() {
         </div>
       )}
 
-      <div>
-        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+      <div className={lineageFullscreen ? 'fixed inset-0 z-50 bg-[var(--bg)] flex flex-col p-4' : ''}>
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2 shrink-0">
           <h2 className="text-lg font-semibold">Lineage Context</h2>
           {lineageSubgraph && (
             <div className="flex items-center gap-2">
@@ -246,17 +247,38 @@ export function ExposurePage() {
               <span className="text-xs text-[var(--text-muted)] ml-2">
                 {lineageSubgraph.nodes.length} nodes · {lineageSubgraph.edges.length} edges
               </span>
+              <div className="h-4 w-px bg-[var(--border)]" />
+              {/* Fullscreen toggle */}
+              <button
+                onClick={() => setLineageFullscreen((f) => !f)}
+                className="p-1 rounded hover:bg-[var(--bg-surface)] cursor-pointer transition-colors text-[var(--text-muted)] hover:text-[var(--text)]"
+                title={lineageFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+              >
+                {lineageFullscreen ? (
+                  <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M8 3v3a2 2 0 01-2 2H3M21 8h-3a2 2 0 01-2-2V3M3 16h3a2 2 0 012 2v3M16 21v-3a2 2 0 012-2h3" />
+                  </svg>
+                ) : (
+                  <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+                  </svg>
+                )}
+              </button>
             </div>
           )}
         </div>
         {lineageSubgraph ? (
-          <div className="h-[560px]">
+          <div
+            className={lineageFullscreen ? 'flex-1 relative min-h-0' : 'relative'}
+            style={lineageFullscreen ? undefined : { height: 'calc(100vh - 360px)', minHeight: 400 }}
+          >
             <LineageFlow
               nodes={lineageSubgraph.nodes}
               edges={lineageSubgraph.edges}
               pinnedIds={new Set([decodedId])}
               layerConfig={lineageSubgraph.layer_config}
               modelColumns={modelColumns}
+              onNavigateAway={() => setLineageFullscreen(false)}
             />
           </div>
         ) : (
