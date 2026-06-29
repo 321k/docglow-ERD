@@ -128,6 +128,9 @@ class ManifestExposure(BaseModel):
     resource_type: str = "exposure"
     type: str = ""
     description: str = ""
+    url: str = ""
+    label: str = ""
+    maturity: str = ""
     depends_on: DependsOn = Field(default_factory=DependsOn)
     owner: dict[str, str] = Field(default_factory=dict)
     tags: list[str] = Field(default_factory=list)

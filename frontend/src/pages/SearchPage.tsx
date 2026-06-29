@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useSearchStore } from '../stores/searchStore'
+import { buildResourcePath } from '../utils/resourceRoutes'
 
 export function SearchPage() {
   const [searchParams] = useSearchParams()
@@ -49,12 +50,10 @@ export function SearchPage() {
           <p className="text-sm text-[var(--text-muted)] mb-3">
             {results.length} result{results.length !== 1 ? 's' : ''}
           </p>
-          {results.map(result => {
-            const type = result.resource_type === 'source' ? 'source' : 'model'
-            return (
+          {results.map(result => (
               <button
                 key={result.unique_id}
-                onClick={() => navigate(`/${type}/${encodeURIComponent(result.unique_id)}`)}
+                onClick={() => navigate(buildResourcePath(result.unique_id))}
                 className="w-full text-left p-4 border border-[var(--border)] rounded-lg
                            hover:border-primary/50 transition-colors cursor-pointer block"
               >
@@ -71,8 +70,7 @@ export function SearchPage() {
                   </p>
                 )}
               </button>
-            )
-          })}
+          ))}
         </div>
       )}
 

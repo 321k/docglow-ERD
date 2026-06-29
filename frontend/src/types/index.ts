@@ -103,6 +103,13 @@ declare module "@docglow/shared-types" {
   interface DocglowData {
     readonly ui?: UiConfig;
   }
+
+  // Exposure fields added after v0.1.0; remove once shared-types is republished.
+  interface DocglowExposure {
+    readonly url: string;
+    readonly label: string;
+    readonly maturity: string;
+  }
 }
 
 export type LineageBadgeAbbreviation = 'smart' | 'truncate' | 'middle' | 'none';

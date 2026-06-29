@@ -1,5 +1,11 @@
 import { create } from 'zustand'
-import type { DocglowData, DocglowModel, DocglowSource, ColumnLineageDependency } from '../types'
+import type {
+  DocglowData,
+  DocglowExposure,
+  DocglowModel,
+  DocglowSource,
+  ColumnLineageDependency,
+} from '../types'
 import { useChatStore } from './chatStore'
 
 interface ProjectState {
@@ -15,7 +21,8 @@ interface ProjectState {
 
   getModel: (uniqueId: string) => DocglowModel | undefined
   getSource: (uniqueId: string) => DocglowSource | undefined
-  getResource: (uniqueId: string) => DocglowModel | DocglowSource | undefined
+  getExposure: (uniqueId: string) => DocglowExposure | undefined
+  getResource: (uniqueId: string) => DocglowModel | DocglowSource | DocglowExposure | undefined
   getColumnLineage: (modelId: string) => Record<string, ColumnLineageDependency[]> | undefined
 }
 
@@ -92,12 +99,19 @@ export const useProjectStore = create<ProjectState>((set, get) => {
       return data.sources[uniqueId]
     },
 
+    getExposure: (uniqueId) => {
+      const { data } = get()
+      if (!data) return undefined
+      return data.exposures[uniqueId]
+    },
+
     getResource: (uniqueId) => {
       const { data } = get()
       if (!data) return undefined
       return (
         data.models[uniqueId] ??
         data.sources[uniqueId] ??
+        data.exposures[uniqueId] ??
         data.seeds[uniqueId] ??
         data.snapshots[uniqueId]
       )

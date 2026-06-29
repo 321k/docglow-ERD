@@ -1,0 +1,34 @@
+version: 2
+
+models:
+  - name: campaign_performance
+    description: >
+      Per-campaign paid marketing performance across Google and Facebook:
+      spend, clicks, leads, and derived efficiency metrics.
+    columns:
+      - name: campaign_id
+        description: Natural key for the advertising campaign.
+        tests:
+          - not_null
+          - unique
+      - name: channel
+        description: Advertising channel the campaign ran on.
+        tests:
+          - accepted_values:
+              values: ["google", "facebook", "linkedin", "organic"]
+              config:
+                severity: warn
+
+  - name: channel_attribution
+    description: >
+      Channel-level rollup of marketing spend and acquisition efficiency,
+      feeding the Marketing Performance dashboard.
+    columns:
+      - name: channel
+        description: Marketing channel.
+        tests:
+          - not_null
+      - name: customer_acquisition_cost_usd
+        description: Blended customer acquisition cost for the channel.
+        tests:
+          - not_null

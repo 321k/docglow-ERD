@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSearchStore } from '../../stores/searchStore'
+import { buildResourcePath } from '../../utils/resourceRoutes'
 
 export function SearchModal() {
   const { results, isOpen, selectedIndex, search, setOpen, setSelectedIndex, reset } = useSearchStore()
@@ -49,12 +50,10 @@ export function SearchModal() {
   }, [search])
 
   const handleSelect = useCallback((entry: { unique_id: string; resource_type: string; column_name?: string }) => {
-    const isSource = entry.unique_id.startsWith('source.')
-    const type = isSource ? 'source' : 'model'
     const hash = entry.resource_type === 'column' && entry.column_name
       ? `#col-${entry.column_name}`
       : ''
-    navigate(`/${type}/${encodeURIComponent(entry.unique_id)}${hash}`)
+    navigate(buildResourcePath(entry.unique_id, hash))
     reset()
   }, [navigate, reset])
 

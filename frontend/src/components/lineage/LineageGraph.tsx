@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import type { LineageNode, LineageEdge } from '../../types'
 import { useLineageLayout, type LayoutNode } from '../../hooks/useLineage'
 import { getFullChain } from '../../utils/graphTraversal'
+import { buildResourcePath } from '../../utils/resourceRoutes'
 
 interface LineageGraphProps {
   nodes: LineageNode[]
@@ -168,8 +169,7 @@ export function LineageGraph({ nodes, edges, highlightId, onNodeClick }: Lineage
       onNodeClick(id)
       return
     }
-    const type = id.startsWith('source.') ? 'source' : 'model'
-    navigate(`/${type}/${encodeURIComponent(id)}`)
+    navigate(buildResourcePath(id))
   }, [navigate, onNodeClick])
 
   if (layout.nodes.length === 0) {
