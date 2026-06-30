@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class ManifestMetadata(BaseModel):
@@ -135,6 +135,16 @@ class ManifestExposure(BaseModel):
     owner: dict[str, str] = Field(default_factory=dict)
     tags: list[str] = Field(default_factory=list)
     meta: dict[str, object] = Field(default_factory=dict)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _drop_null_optionals(cls, data: object) -> object:
+        # dbt manifests emit explicit `null` for unset exposure fields (e.g.
+        # Lightdash-generated exposures carry `maturity: null`). Drop null keys
+        # so the `""` defaults apply instead of failing str validation.
+        if isinstance(data, dict):
+            return {k: v for k, v in data.items() if v is not None}
+        return data
 
 
 class ManifestMetric(BaseModel):
